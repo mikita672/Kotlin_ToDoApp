@@ -1,6 +1,5 @@
 package com.mdzeviatau.todoapp.ui.screens
 
-import android.R
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -191,13 +190,22 @@ fun TaskDetailScreen(
 
             Text("Priority", style = MaterialTheme.typography.labelLarge)
             Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TaskPriority.entries.forEach { p ->
                     FilterChip(
                         selected = priority == p,
                         onClick = { priority = p },
-                        label = { Text(p.name) })
+                        label = { Text(p.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = getPriorityIcon(p),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = if (priority == p) getPriorityColor(p) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        })
                 }
             }
 
@@ -208,11 +216,18 @@ fun TaskDetailScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TaskCategory.entries.take(4).forEach { c ->
+                TaskCategory.entries.forEach { c ->
                     FilterChip(
                         selected = category == c,
                         onClick = { category = c },
-                        label = { Text(c.name) })
+                        label = { Text(c.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = getCategoryIcon(c),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        })
                 }
             }
         }
