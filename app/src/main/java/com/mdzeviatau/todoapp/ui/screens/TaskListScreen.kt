@@ -1,12 +1,12 @@
 package com.mdzeviatau.todoapp.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,9 +18,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mdzeviatau.todoapp.data.models.task.Task
 import com.mdzeviatau.todoapp.data.models.task.TaskStatus
 import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
-
-import com.mdzeviatau.todoapp.data.models.task.TaskPriority
-import androidx.compose.material.icons.filled.Sort
+import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 enum class SortOrder {
     DATE, PRIORITY, CATEGORY
@@ -35,19 +36,41 @@ fun TaskListScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var sortOrder by remember { mutableStateOf(SortOrder.DATE) }
     var showSortMenu by remember { mutableStateOf(false) }
-    val tabs = listOf("To Do", "Completed")
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val tabs = listOf("All", "Today", "Overdue", "Completed")
 
     val filteredAndSortedTasks = remember(tasks, selectedTabIndex, sortOrder) {
-        val filtered = when (selectedTabIndex) {
+        val baseFiltered = when (selectedTabIndex) {
             0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
-            1 -> tasks.filter { it.status == TaskStatus.COMPLETED }
+            1 -> {
+                val today = LocalDate.now()
+                tasks.filter { task ->
+                    task.dueDate?.let {
+                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                            .toLocalDate() == today
+                    } == true && task.status != TaskStatus.COMPLETED
+                }
+            }
+
+            2 -> {
+                val today = LocalDate.now()
+                tasks.filter { task ->
+                    task.dueDate?.let {
+                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                            .isBefore(today)
+                    } == true && task.status != TaskStatus.COMPLETED
+                }
+            }
+
+            3 -> tasks.filter { it.status == TaskStatus.COMPLETED }
             else -> tasks
         }
 
         when (sortOrder) {
-            SortOrder.DATE -> filtered.sortedByDescending { it.createdAt }
-            SortOrder.PRIORITY -> filtered.sortedBy { it.priority } // Assuming Enum order is LOW, MEDIUM, HIGH
-            SortOrder.CATEGORY -> filtered.sortedBy { it.category.name }
+            SortOrder.DATE -> baseFiltered.sortedByDescending { it.createdAt }
+            SortOrder.PRIORITY -> baseFiltered.sortedBy { it.priority }
+            SortOrder.CATEGORY -> baseFiltered.sortedBy { it.category.name }
         }
     }
 
@@ -91,7 +114,7 @@ fun TaskListScreen(
                 }
             }
         }
-    }, floatingActionButton = {
+    }, snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, floatingActionButton = {
         FloatingActionButton(onClick = onAddTaskClick) {
             Icon(Icons.Default.Add, contentDescription = "Add task")
         }
@@ -103,9 +126,15 @@ fun TaskListScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
+                val emptyMessage = when (selectedTabIndex) {
+                    0 -> "No tasks to do!"
+                    1 -> "No tasks for today."
+                    2 -> "No overdue tasks."
+                    3 -> "No completed tasks yet."
+                    else -> "No tasks found."
+                }
                 Text(
-                    text = if (selectedTabIndex == 0) "No tasks to do!" else "No completed tasks yet.",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = emptyMessage, style = MaterialTheme.typography.bodyLarge
                 )
             }
         } else {
@@ -117,14 +146,75 @@ fun TaskListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredAndSortedTasks, key = { it.id }) { task ->
-                    TaskItem(
-                        task = task,
-                        onTaskClick = { onTaskClick(task.id) },
-                        onStatusChange = { isCompleted ->
-                            val newStatus =
-                                if (isCompleted) TaskStatus.COMPLETED else TaskStatus.TODO
-                            viewModel.updateTask(task.copy(status = newStatus))
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            when (value) {
+                                SwipeToDismissBoxValue.StartToEnd -> {
+                                    viewModel.updateTask(task.copy(status = TaskStatus.COMPLETED))
+                                    true
+                                }
+
+                                SwipeToDismissBoxValue.EndToStart -> {
+                                    scope.launch {
+                                        viewModel.deleteTask(task)
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Task deleted", actionLabel = "Undo"
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            viewModel.addTask(task)
+                                        }
+                                    }
+                                    true
+                                }
+
+                                else -> false
+                            }
                         })
+
+                    SwipeToDismissBox(
+                        state = dismissState, backgroundContent = {
+                            val color by animateColorAsState(
+                                when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50)
+                                    SwipeToDismissBoxValue.EndToStart -> Color(0xFFF44336)
+                                    else -> Color.Transparent
+                                }, label = "background_color"
+                            )
+                            val alignment = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                else -> Alignment.Center
+                            }
+                            val icon = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Check
+                                SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+                                else -> Icons.Default.Delete
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(color, MaterialTheme.shapes.medium)
+                                    .padding(horizontal = 20.dp), contentAlignment = alignment
+                            ) {
+                                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }) {
+                        TaskItem(
+                            task = task,
+                            onTaskClick = { onTaskClick(task.id) },
+                            onStatusChange = { isCompleted ->
+                                val newStatus =
+                                    if (isCompleted) TaskStatus.COMPLETED else TaskStatus.TODO
+                                viewModel.updateTask(task.copy(status = newStatus))
+                            })
+                    }
                 }
             }
         }
@@ -181,15 +271,13 @@ fun TaskItem(
             }
 
             Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .padding(2.dp)
+                modifier = Modifier.size(12.dp)
             ) {
                 Surface(
-                    color = priorityColor, shape = androidx.compose.foundation.shape.CircleShape
-                ) {
-                    Spacer(modifier = Modifier.fillMaxSize())
-                }
+                    color = priorityColor,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    modifier = Modifier.fillMaxSize()
+                ) {}
             }
         }
     }
