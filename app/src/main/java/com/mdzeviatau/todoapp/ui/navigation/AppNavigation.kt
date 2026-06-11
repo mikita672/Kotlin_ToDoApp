@@ -1,10 +1,16 @@
 package com.mdzeviatau.todoapp.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.mdzeviatau.todoapp.TodoApplication
+import com.mdzeviatau.todoapp.ui.screens.TaskListScreen
+import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
+import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModelFactory
 
 @Composable
 fun AppNavHost(navController: NavHostController) {
@@ -12,18 +18,23 @@ fun AppNavHost(navController: NavHostController) {
          navController = navController,
          startDestination = TaskListDestination
      ) {
-         // Ekran 1: Lista Zadań
          composable<TaskListDestination> {
+                  val context = LocalContext.current
+                  val viewModel: TaskViewModel = viewModel(
+                      factory = TaskViewModelFactory((context.applicationContext as TodoApplication).repository)
+                  )
 
-         }
-
-         // Ekran 2: Szczegóły / Edycja Zadania
+                  TaskListScreen(
+                              viewModel = viewModel,
+                      onAddTaskClick = { navController.navigate(TaskDetailDestination()) },
+                      onTaskClick = { taskId -> navController.navigate(TaskDetailDestination(taskId)) }
+                  )
+              }
          composable<TaskDetailDestination> { backStackEntry ->
              val route: TaskDetailDestination = backStackEntry.toRoute()
              val taskId = route.taskId
          }
 
-         // Ekran 3: Ustawienia
          composable<SettingsDestination> {
 
          }
