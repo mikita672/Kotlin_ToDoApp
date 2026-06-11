@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
     val allTasks: StateFlow<List<Task>> = repository.allTasks.stateIn(
         scope = viewModelScope,
-        started  = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
 
@@ -29,26 +29,31 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
         initialValue = emptyList()
     )
 
-    fun addTask(task: Task){
+    fun addTask(task: Task) {
         viewModelScope.launch {
             repository.insertTask(task)
         }
     }
 
-    fun updateTask(task: Task){
-        viewModelScope.launch { repository.deleteTask(task) }
+    fun updateTask(task: Task) {
+        viewModelScope.launch { repository.updateTask(task) }
     }
 
-    suspend fun getTaskById(id:String): Task? {
+    fun deleteTask(task: Task) {
+        viewModelScope.launch {
+            repository.deleteTask(task)
+        }
+    }
+
+    suspend fun getTaskById(id: String): Task? {
         return repository.getTaskById(id)
     }
 }
 
-class TaskViewModelFactory(private val repository: TaskRepository): ViewModelProvider.Factory{
-    override fun <T: ViewModel> create(modelClass: Class<T>): T{
-        if(modelClass.isAssignableFrom(TaskViewModel::class.java)){
-            @Suppress("UNCHECKED_CAST")
-            return TaskViewModel(repository) as T
+class TaskViewModelFactory(private val repository: TaskRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST") return TaskViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

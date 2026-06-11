@@ -27,9 +27,7 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskDetailScreen(
-    taskId: String?,
-    viewModel: TaskViewModel,
-    onNavigateBack: () -> Unit
+    taskId: String?, viewModel: TaskViewModel, onNavigateBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
 
@@ -37,7 +35,7 @@ fun TaskDetailScreen(
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(TaskPriority.LOW) }
     var category by remember { mutableStateOf(TaskCategory.OTHER) }
-    var dueDateMillis by remember {mutableStateOf<Long?>(null)}
+    var dueDateMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -54,30 +52,26 @@ fun TaskDetailScreen(
         }
     }
 
-    if(showDatePicker){
+    if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dueDateMillis ?: System.currentTimeMillis()
         )
-        DatePickerDialog(
-            onDismissRequest = {showDatePicker = false},
-            confirmButton = {
-                TextButton(onClick = {
-                    dueDateMillis = datePickerState.selectedDateMillis
-                    showDatePicker = false
-                    showTimePicker = true
-                }) { Text("Ok") }
-            },
-            dismissButton = {
-                TextButton(onClick = {showDatePicker = false}) {Text("Anuluj") }
-            }
-        ) {
+        DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {
+            TextButton(onClick = {
+                dueDateMillis = datePickerState.selectedDateMillis
+                showDatePicker = false
+                showTimePicker = true
+            }) { Text("Ok") }
+        }, dismissButton = {
+            TextButton(onClick = { showDatePicker = false }) { Text("Anuluj") }
+        }) {
             DatePicker(state = datePickerState)
         }
     }
 
-    if(showTimePicker){
+    if (showTimePicker) {
         val calendar = Calendar.getInstance().apply {
-            dueDateMillis?.let { timeInMillis=it }
+            dueDateMillis?.let { timeInMillis = it }
         }
         val timePickerState = rememberTimePickerState(
             initialHour = calendar.get(Calendar.HOUR_OF_DAY),
@@ -85,30 +79,25 @@ fun TaskDetailScreen(
             is24Hour = true
         )
 
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val date = Instant.ofEpochMilli(dueDateMillis ?: System.currentTimeMillis())
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate()
-                    val combinedDateTime = LocalDateTime.of(
-                        date, LocalTime.of(timePickerState.hour, timePickerState.minute)
-                    )
+        AlertDialog(onDismissRequest = { showTimePicker = false }, confirmButton = {
+            TextButton(onClick = {
+                val date = Instant.ofEpochMilli(dueDateMillis ?: System.currentTimeMillis())
+                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                val combinedDateTime = LocalDateTime.of(
+                    date, LocalTime.of(timePickerState.hour, timePickerState.minute)
+                )
 
-                    dueDateMillis = combinedDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    showTimePicker = false
-                }) { Text("Ok") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Anuluj") }
-            },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TimePicker(state = timePickerState)
-                }
+                dueDateMillis =
+                    combinedDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                showTimePicker = false
+            }) { Text("Ok") }
+        }, dismissButton = {
+            TextButton(onClick = { showTimePicker = false }) { Text("Anuluj") }
+        }, text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                TimePicker(state = timePickerState)
             }
-        )
+        })
     }
 
     Scaffold(
@@ -129,7 +118,8 @@ fun TaskDetailScreen(
                                         Task(
                                             title = title,
                                             description = description,
-                                            createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                                            createdAt = LocalDateTime.now()
+                                                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                                             priority = priority,
                                             category = category,
                                             dueDate = dueDateMillis
@@ -145,19 +135,18 @@ fun TaskDetailScreen(
                                     }
 
                                     if (task != null) {
-                                        if (taskId == null) viewModel.addTask(task) else viewModel.updateTask(task)
+                                        if (taskId == null) viewModel.addTask(task) else viewModel.updateTask(
+                                            task
+                                        )
                                         onNavigateBack()
                                     }
                                 }
                             }
-                        }
-                    ) {
+                        }) {
                         Icon(Icons.Default.Save, contentDescription = "Save")
                     }
-                }
-            )
-        }
-    ) { innerPadding ->
+                })
+        }) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -182,43 +171,48 @@ fun TaskDetailScreen(
                 minLines = 3
             )
 
-            Text("Deadline",  style = MaterialTheme.typography.labelLarge)
-            OutlinedCard(onClick = {showDatePicker = true}, modifier = Modifier.fillMaxWidth()) {
+            Text("Deadline", style = MaterialTheme.typography.labelLarge)
+            OutlinedCard(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
-                ){
+                ) {
                     Icon(Icons.Default.CalendarMonth, contentDescription = null)
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = if(dueDateMillis != null){
-                            val dt = Instant.ofEpochMilli(dueDateMillis!!).atZone(ZoneId.systemDefault())
+                        text = if (dueDateMillis != null) {
+                            val dt =
+                                Instant.ofEpochMilli(dueDateMillis!!).atZone(ZoneId.systemDefault())
                             dt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
-                        }else "Choose date and time",
-                        style = MaterialTheme.typography.bodyLarge
+                        } else "Choose date and time", style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
 
             Text("Priority", style = MaterialTheme.typography.labelLarge)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 TaskPriority.entries.forEach { p ->
                     FilterChip(
                         selected = priority == p,
                         onClick = { priority = p },
-                        label = { Text(p.name) }
-                    )
+                        label = { Text(p.name) })
                 }
             }
 
             Text("Category", style = MaterialTheme.typography.labelLarge)
-            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TaskCategory.entries.take(4).forEach { c ->
                     FilterChip(
                         selected = category == c,
                         onClick = { category = c },
-                        label = { Text(c.name) }
-                    )
+                        label = { Text(c.name) })
                 }
             }
         }
