@@ -78,28 +78,28 @@ fun TaskListScreen(
         Column {
             TopAppBar(
                 title = { Text("My Tasks") }, actions = {
-                IconButton(onClick = { showSortMenu = true }) {
-                    Icon(Icons.Default.Sort, contentDescription = "Sort tasks")
-                }
-                DropdownMenu(
-                    expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
-                    DropdownMenuItem(text = { Text("Sort by Date") }, onClick = {
-                        sortOrder = SortOrder.DATE
-                        showSortMenu = false
-                    })
-                    DropdownMenuItem(text = { Text("Sort by Priority") }, onClick = {
-                        sortOrder = SortOrder.PRIORITY
-                        showSortMenu = false
-                    })
-                    DropdownMenuItem(text = { Text("Sort by Category") }, onClick = {
-                        sortOrder = SortOrder.CATEGORY
-                        showSortMenu = false
-                    })
-                }
-            }, colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+                    IconButton(onClick = { showSortMenu = true }) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Sort tasks")
+                    }
+                    DropdownMenu(
+                        expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                        DropdownMenuItem(text = { Text("Sort by Date") }, onClick = {
+                            sortOrder = SortOrder.DATE
+                            showSortMenu = false
+                        })
+                        DropdownMenuItem(text = { Text("Sort by Priority") }, onClick = {
+                            sortOrder = SortOrder.PRIORITY
+                            showSortMenu = false
+                        })
+                        DropdownMenuItem(text = { Text("Sort by Category") }, onClick = {
+                            sortOrder = SortOrder.CATEGORY
+                            showSortMenu = false
+                        })
+                    }
+                }, colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
             SecondaryTabRow(
                 selectedTabIndex = selectedTabIndex,
@@ -156,14 +156,19 @@ fun TaskListScreen(
                             }
 
                             SwipeToDismissBoxValue.EndToStart -> {
-                                viewModel.deleteTask(task)
-                                val result = snackbarHostState.showSnackbar(
-                                    message = "Task deleted", actionLabel = "Undo"
-                                )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    viewModel.addTask(task)
+                                scope.launch {
+                                    dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                                    viewModel.deleteTask(task)
+
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Task deleted",
+                                        actionLabel = "Undo",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        viewModel.addTask(task)
+                                    }
                                 }
-                                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                             }
 
                             SwipeToDismissBoxValue.Settled -> {}
