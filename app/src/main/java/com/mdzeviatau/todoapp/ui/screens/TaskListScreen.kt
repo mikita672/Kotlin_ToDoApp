@@ -146,20 +146,22 @@ fun TaskListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredAndSortedTasks, key = { it.id }) { task ->
+                    val isCompletedTab = selectedTabIndex == 3
                     val dismissState = rememberSwipeToDismissBoxState()
 
                     LaunchedEffect(dismissState.currentValue) {
                         when (dismissState.currentValue) {
                             SwipeToDismissBoxValue.StartToEnd -> {
-                                viewModel.updateTask(task.copy(status = TaskStatus.COMPLETED))
+                                val newStatus =
+                                    if (isCompletedTab) TaskStatus.TODO else TaskStatus.COMPLETED
+                                viewModel.updateTask(task.copy(status = newStatus))
                                 dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                             }
 
                             SwipeToDismissBoxValue.EndToStart -> {
-                                scope.launch {
-                                    dismissState.snapTo(SwipeToDismissBoxValue.Settled)
-                                    viewModel.deleteTask(task)
+                                viewModel.deleteTask(task)
 
+                                scope.launch {
                                     val result = snackbarHostState.showSnackbar(
                                         message = "Task deleted",
                                         actionLabel = "Undo",
@@ -169,8 +171,9 @@ fun TaskListScreen(
                                         viewModel.addTask(task)
                                     }
                                 }
-                            }
 
+                                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                            }
                             SwipeToDismissBoxValue.Settled -> {}
                         }
                     }
@@ -180,7 +183,10 @@ fun TaskListScreen(
                             val direction = dismissState.dismissDirection
                             val color by animateColorAsState(
                                 when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50)
+                                    SwipeToDismissBoxValue.StartToEnd -> if (isCompletedTab) Color(
+                                        0xFF2196F3
+                                    ) else Color(0xFF4CAF50)
+
                                     SwipeToDismissBoxValue.EndToStart -> Color(0xFFF44336)
                                     else -> Color.Transparent
                                 }, label = "background_color"
@@ -191,7 +197,7 @@ fun TaskListScreen(
                                 else -> Alignment.Center
                             }
                             val icon = when (direction) {
-                                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Check
+                                SwipeToDismissBoxValue.StartToEnd -> if (isCompletedTab) Icons.Default.RadioButtonUnchecked else Icons.Default.Check
                                 SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
                                 else -> null
                             }
