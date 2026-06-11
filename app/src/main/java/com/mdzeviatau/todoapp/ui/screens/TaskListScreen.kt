@@ -30,7 +30,7 @@ fun TaskListScreen(
 ) {
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    var sortOrder by remember { mutableStateOf(SortOrder.DATE) }
+    var sortOrder by remember { mutableStateOf(SortOrder.DATE_DESC) }
     var showSortMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -64,7 +64,8 @@ fun TaskListScreen(
         }
 
         when (sortOrder) {
-            SortOrder.DATE -> baseFiltered.sortedByDescending { it.createdAt }
+            SortOrder.DATE_DESC -> baseFiltered.sortedByDescending { it.createdAt }
+            SortOrder.DATE_ASC -> baseFiltered.sortedBy { it.createdAt }
             SortOrder.PRIORITY -> baseFiltered.sortedBy { it.priority }
             SortOrder.CATEGORY -> baseFiltered.sortedBy { it.category.name }
         }
@@ -79,8 +80,12 @@ fun TaskListScreen(
                 }
                 DropdownMenu(
                     expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
-                    DropdownMenuItem(text = { Text("Sort by Date") }, onClick = {
-                        sortOrder = SortOrder.DATE
+                    DropdownMenuItem(text = { Text("Newest First") }, onClick = {
+                        sortOrder = SortOrder.DATE_DESC
+                        showSortMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Oldest First") }, onClick = {
+                        sortOrder = SortOrder.DATE_ASC
                         showSortMenu = false
                     })
                     DropdownMenuItem(text = { Text("Sort by Priority") }, onClick = {
