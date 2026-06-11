@@ -19,6 +19,13 @@ import com.mdzeviatau.todoapp.data.models.task.Task
 import com.mdzeviatau.todoapp.data.models.task.TaskStatus
 import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
 
+import com.mdzeviatau.todoapp.data.models.task.TaskPriority
+import androidx.compose.material.icons.filled.Sort
+
+enum class SortOrder {
+    DATE, PRIORITY, CATEGORY
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
@@ -26,21 +33,50 @@ fun TaskListScreen(
 ) {
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var sortOrder by remember { mutableStateOf(SortOrder.DATE) }
+    var showSortMenu by remember { mutableStateOf(false) }
     val tabs = listOf("To Do", "Completed")
 
-    val filteredTasks = when (selectedTabIndex) {
-        0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
-        1 -> tasks.filter { it.status == TaskStatus.COMPLETED }
-        else -> tasks
+    val filteredAndSortedTasks = remember(tasks, selectedTabIndex, sortOrder) {
+        val filtered = when (selectedTabIndex) {
+            0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
+            1 -> tasks.filter { it.status == TaskStatus.COMPLETED }
+            else -> tasks
+        }
+
+        when (sortOrder) {
+            SortOrder.DATE -> filtered.sortedByDescending { it.createdAt }
+            SortOrder.PRIORITY -> filtered.sortedBy { it.priority } // Assuming Enum order is LOW, MEDIUM, HIGH
+            SortOrder.CATEGORY -> filtered.sortedBy { it.category.name }
+        }
     }
 
     Scaffold(topBar = {
         Column {
             TopAppBar(
-                title = { Text("My Tasks") }, colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                title = { Text("My Tasks") }, actions = {
+                IconButton(onClick = { showSortMenu = true }) {
+                    Icon(Icons.Default.Sort, contentDescription = "Sort tasks")
+                }
+                DropdownMenu(
+                    expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                    DropdownMenuItem(text = { Text("Sort by Date") }, onClick = {
+                        sortOrder = SortOrder.DATE
+                        showSortMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Sort by Priority") }, onClick = {
+                        sortOrder = SortOrder.PRIORITY
+                        showSortMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Sort by Category") }, onClick = {
+                        sortOrder = SortOrder.CATEGORY
+                        showSortMenu = false
+                    })
+                }
+            }, colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            )
             )
             SecondaryTabRow(
                 selectedTabIndex = selectedTabIndex,
@@ -60,7 +96,7 @@ fun TaskListScreen(
             Icon(Icons.Default.Add, contentDescription = "Add task")
         }
     }) { innerPadding ->
-        if (filteredTasks.isEmpty()) {
+        if (filteredAndSortedTasks.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -80,7 +116,7 @@ fun TaskListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredTasks, key = { it.id }) { task ->
+                items(filteredAndSortedTasks, key = { it.id }) { task ->
                     TaskItem(
                         task = task,
                         onTaskClick = { onTaskClick(task.id) },
