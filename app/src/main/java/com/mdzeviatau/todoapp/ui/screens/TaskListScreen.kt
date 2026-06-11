@@ -8,8 +8,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,26 +25,52 @@ fun TaskListScreen(
     viewModel: TaskViewModel, onAddTaskClick: () -> Unit, onTaskClick: (String) -> Unit
 ) {
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("To Do", "Completed")
+
+    val filteredTasks = when (selectedTabIndex) {
+        0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
+        1 -> tasks.filter { it.status == TaskStatus.COMPLETED }
+        else -> tasks
+    }
+
     Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("My Tasks") }, colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        Column {
+            TopAppBar(
+                title = { Text("My Tasks") }, colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
-        )
+            SecondaryTabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(text = title) })
+                }
+            }
+        }
     }, floatingActionButton = {
         FloatingActionButton(onClick = onAddTaskClick) {
             Icon(Icons.Default.Add, contentDescription = "Add task")
         }
     }) { innerPadding ->
-        if (tasks.isEmpty()) {
+        if (filteredTasks.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No tasks. Click + to add one")
+                Text(
+                    text = if (selectedTabIndex == 0) "No tasks to do!" else "No completed tasks yet.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         } else {
             LazyColumn(
@@ -55,7 +80,7 @@ fun TaskListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(tasks, key = { it.id }) { task ->
+                items(filteredTasks, key = { it.id }) { task ->
                     TaskItem(
                         task = task,
                         onTaskClick = { onTaskClick(task.id) },
