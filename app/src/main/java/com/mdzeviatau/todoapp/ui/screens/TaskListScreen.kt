@@ -28,14 +28,14 @@ fun TaskListScreen(
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text("Moje Zadania") }, colors = TopAppBarDefaults.topAppBarColors(
+            title = { Text("My Tasks") }, colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
         )
     }, floatingActionButton = {
         FloatingActionButton(onClick = onAddTaskClick) {
-            Icon(Icons.Default.Add, contentDescription = "Dodaj zadanie")
+            Icon(Icons.Default.Add, contentDescription = "Add task")
         }
     }) { innerPadding ->
         if (tasks.isEmpty()) {
@@ -45,7 +45,7 @@ fun TaskListScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Brak zadań. Kliknij +, aby dodać pierwsze!")
+                Text("No tasks. Click + to add one")
             }
         } else {
             LazyColumn(
@@ -92,7 +92,7 @@ fun TaskItem(
                 Icon(
                     imageVector = if (task.status == TaskStatus.COMPLETED) Icons.Default.CheckCircle
                     else Icons.Default.RadioButtonUnchecked,
-                    contentDescription = "Zmień status",
+                    contentDescription = "Change status",
                     tint = if (task.status == TaskStatus.COMPLETED) Color.Gray else MaterialTheme.colorScheme.primary
                 )
             }
