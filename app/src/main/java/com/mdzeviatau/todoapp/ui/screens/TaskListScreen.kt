@@ -38,7 +38,7 @@ fun TaskListScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val tabs = listOf("All", "Today", "Overdue", "Completed")
+    val tabs = listOf("To Do", "Today", "Overdue", "Completed")
 
     val filteredAndSortedTasks = remember(tasks, selectedTabIndex, sortOrder) {
         val baseFiltered = when (selectedTabIndex) {
@@ -146,33 +146,33 @@ fun TaskListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredAndSortedTasks, key = { it.id }) { task ->
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = { value ->
-                            when (value) {
-                                SwipeToDismissBoxValue.StartToEnd -> {
-                                    viewModel.updateTask(task.copy(status = TaskStatus.COMPLETED))
-                                    true
-                                }
+                    val dismissState = rememberSwipeToDismissBoxState()
 
-                                SwipeToDismissBoxValue.EndToStart -> {
-                                    scope.launch {
-                                        viewModel.deleteTask(task)
-                                        val result = snackbarHostState.showSnackbar(
-                                            message = "Task deleted", actionLabel = "Undo"
-                                        )
-                                        if (result == SnackbarResult.ActionPerformed) {
-                                            viewModel.addTask(task)
-                                        }
-                                    }
-                                    true
-                                }
-
-                                else -> false
+                    LaunchedEffect(dismissState.currentValue) {
+                        when (dismissState.currentValue) {
+                            SwipeToDismissBoxValue.StartToEnd -> {
+                                viewModel.updateTask(task.copy(status = TaskStatus.COMPLETED))
+                                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                             }
-                        })
+
+                            SwipeToDismissBoxValue.EndToStart -> {
+                                viewModel.deleteTask(task)
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Task deleted", actionLabel = "Undo"
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.addTask(task)
+                                }
+                                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                            }
+
+                            SwipeToDismissBoxValue.Settled -> {}
+                        }
+                    }
 
                     SwipeToDismissBox(
                         state = dismissState, backgroundContent = {
+                            val direction = dismissState.dismissDirection
                             val color by animateColorAsState(
                                 when (dismissState.targetValue) {
                                     SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50)
@@ -180,15 +180,15 @@ fun TaskListScreen(
                                     else -> Color.Transparent
                                 }, label = "background_color"
                             )
-                            val alignment = when (dismissState.targetValue) {
+                            val alignment = when (direction) {
                                 SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
                                 SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
                                 else -> Alignment.Center
                             }
-                            val icon = when (dismissState.targetValue) {
+                            val icon = when (direction) {
                                 SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Check
                                 SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
-                                else -> Icons.Default.Delete
+                                else -> null
                             }
 
                             Box(
@@ -197,9 +197,9 @@ fun TaskListScreen(
                                     .background(color, MaterialTheme.shapes.medium)
                                     .padding(horizontal = 20.dp), contentAlignment = alignment
                             ) {
-                                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                icon?.let {
                                     Icon(
-                                        imageVector = icon,
+                                        imageVector = it,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
