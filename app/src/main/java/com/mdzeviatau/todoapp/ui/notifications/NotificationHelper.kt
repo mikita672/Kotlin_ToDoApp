@@ -1,11 +1,15 @@
 package com.mdzeviatau.todoapp.ui.notifications
 
+import android.Manifest
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.mdzeviatau.todoapp.MainActivity
@@ -48,13 +52,69 @@ object NotificationHelper {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
-                    context, android.Manifest.permission.POST_NOTIFICATIONS
+                    context, Manifest.permission.POST_NOTIFICATIONS
                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             ) {
                 notificationManager.notify(taskId.hashCode(), builder.build())
             }
         } else {
             notificationManager.notify(taskId.hashCode(), builder.build())
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
+    fun scheduleNotification(
+        context: Context, taskId: String, title: String, description: String, timeInMillis: Long
+    ) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        if (timeInMillis <= System.currentTimeMillis()) return
+
+        val intent = Intent(context, TaskReminderReceiver::class.java).apply {
+            putExtra("TASK_ID", taskId)
+            putExtra("TASK_TITLE", title)
+            putExtra("TASK_DESCRIPTION", description)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            taskId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
+                    )
+                } else {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
+                    )
+                }
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("NotificationHelper", "Error while planning the alarm: ${e.message}")
+        }
+    }
+
+    fun cancelNotification(context: Context, taskId: String) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, TaskReminderReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            taskId.hashCode(),
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
         }
     }
 }
