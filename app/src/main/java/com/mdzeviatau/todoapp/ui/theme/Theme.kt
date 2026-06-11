@@ -1,58 +1,60 @@
 package com.mdzeviatau.todoapp.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = GruvboxYellow,
+    onPrimary = GruvboxBg0,
+    primaryContainer = GruvboxBg1,
+    onPrimaryContainer = GruvboxFg1,
+    secondary = GruvboxBlue,
+    onSecondary = GruvboxBg0,
+    tertiary = GruvboxAqua,
+    onTertiary = GruvboxBg0,
+    background = GruvboxBg0,
+    onBackground = GruvboxFg1,
+    surface = GruvboxBg1,
+    onSurface = GruvboxFg1,
+    surfaceVariant = GruvboxBg2,
+    onSurfaceVariant = GruvboxFg2,
+    error = GruvboxRed,
+    onError = GruvboxBg0
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = GruvboxYellow,
+    onPrimary = GruvboxLightBg0,
+    primaryContainer = GruvboxLightBg1,
+    onPrimaryContainer = GruvboxLightFg0,
+    secondary = GruvboxBlue,
+    onSecondary = GruvboxLightBg0,
+    tertiary = GruvboxAqua,
+    onTertiary = GruvboxLightBg0,
+    background = GruvboxLightBg0,
+    onBackground = GruvboxLightFg0,
+    surface = GruvboxLightBg1,
+    onSurface = GruvboxLightFg0,
+    surfaceVariant = GruvboxLightBg1,
+    onSurfaceVariant = GruvboxLightFg1,
+    error = GruvboxRed,
+    onError = GruvboxLightBg0
 )
 
 @Composable
 fun ToDoAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = colorScheme, shapes = Shapes, typography = Typography, content = content
     )
 }
