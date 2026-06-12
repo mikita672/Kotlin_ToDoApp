@@ -86,7 +86,7 @@ fun TaskDetailScreen(
                 showTimePicker = true
             }) { Text("Ok") }
         }, dismissButton = {
-            TextButton(onClick = { showDatePicker = false }) { Text("Anuluj") }
+            TextButton(onClick = { showDatePicker = false }) { Text("Undo") }
         }) {
             DatePicker(state = datePickerState)
         }
@@ -115,7 +115,7 @@ fun TaskDetailScreen(
                 showTimePicker = false
             }) { Text("Ok") }
         }, dismissButton = {
-            TextButton(onClick = { showTimePicker = false }) { Text("Anuluj") }
+            TextButton(onClick = { showTimePicker = false }) { Text("Undo") }
         }, text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 TimePicker(state = timePickerState)
@@ -244,12 +244,12 @@ fun TaskDetailScreen(
                             latitude = latLng.latitude
                             longitude = latLng.longitude
                         },
-                        uiSettings = MapUiSettings(zoomControlsEnabled = false)
-                    ) {
+                        uiSettings = remember { MapUiSettings(zoomControlsEnabled = false) }) {
                         if (latitude != null && longitude != null) {
                             Marker(
-                                state = MarkerState(position = LatLng(latitude!!, longitude!!)),
-                                title = "Task Location"
+                                state = remember(latitude, longitude) {
+                                    MarkerState(position = LatLng(latitude!!, longitude!!))
+                                }, title = "Task Location"
                             )
                         }
                     }
