@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.material3.Surface
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -52,6 +54,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.io.File
 import java.util.Calendar
 import java.util.Locale
 
@@ -66,6 +69,7 @@ fun TaskDetailScreen(
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     var attachments by remember { mutableStateOf<List<String>>(emptyList()) }
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri ->
@@ -79,6 +83,15 @@ fun TaskDetailScreen(
                 attachments = attachments + uri.toString()
             }
         })
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success && tempImageUri != null) {
+                attachments = attachments + tempImageUri.toString()
+            }
+        }
+    )
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(), onResult = { uri ->
@@ -366,22 +379,51 @@ fun TaskDetailScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                val uri = try {
+                                    val directory = File(context.filesDir, "Pictures")
+                                    if (!directory.exists()) directory.mkdirs()
+                                    val file = File.createTempFile("IMG_", ".jpg", directory)
+                                    FileProvider.getUriForFile(
+                                        context,
+                                        "com.mdzeviatau.todoapp.fileprovider",
+                                        file
+                                    )
+                                } catch (e: Exception) {
+                                    Log.e("TaskDetailScreen", "Error creating image file", e)
+                                    null
+                                }
+                                if (uri != null) {
+                                    tempImageUri = uri
+                                    takePictureLauncher.launch(uri)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Take Photo")
+                        }
+                        Button(
+                            onClick = {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
-                            )
-                        }) {
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("Add Photo")
                         }
-                        Button(onClick = {
-                            filePickerLauncher.launch("*/*")
-                        }) {
+                        Button(
+                            onClick = {
+                                filePickerLauncher.launch("*/*")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("Add File")
                         }
                     }
+
                 }
             }
 
