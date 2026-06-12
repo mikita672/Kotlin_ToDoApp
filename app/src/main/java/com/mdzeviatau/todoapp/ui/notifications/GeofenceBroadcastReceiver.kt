@@ -4,11 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        Log.d("GeofenceReceiver", "onReceive triggered!")
+
         val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: run {
             Log.e("GeofenceReceiver", "Received intent but GeofencingEvent is null")
             return
@@ -27,6 +30,8 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         ) {
 
             val triggeringGeofences = geofencingEvent.triggeringGeofences ?: emptyList()
+
+            Toast.makeText(context, "Geofence triggered!", Toast.LENGTH_SHORT).show()
 
             for (geofence in triggeringGeofences) {
                 val taskId = geofence.requestId
