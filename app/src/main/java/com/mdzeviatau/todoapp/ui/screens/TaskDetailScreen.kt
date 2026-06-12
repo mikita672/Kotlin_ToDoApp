@@ -1,6 +1,7 @@
 package com.mdzeviatau.todoapp.ui.screens
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -41,6 +44,7 @@ fun TaskDetailScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val geofenceHelper = remember { GeofenceHelper(context) }
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -75,6 +79,19 @@ fun TaskDetailScreen(
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(
                         LatLng(task.latitude, task.longitude), 15f
                     )
+                }
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                            LatLng(it.latitude, it.longitude), 15f
+                        )
+                    }
                 }
             }
         }
@@ -282,13 +299,15 @@ fun TaskDetailScreen(
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    text = String.format(Locale.ENGLISH, "%.4f, %.4f", latitude, longitude),
-                                    style = MaterialTheme.typography.bodySmall
+                                    text = String.format(
+                                        Locale.ENGLISH, "%.4f, %.4f", latitude, longitude
+                                    ), style = MaterialTheme.typography.bodySmall
                                 )
-                                }
-                                Row {
+                            }
+                            Row {
                                 TextButton(onClick = {
-                                    val gmmIntentUri = Uri.parse("google.navigation:q=$latitude,$longitude")
+                                    val gmmIntentUri =
+                                        Uri.parse("google.navigation:q=$latitude,$longitude")
                                     val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                                     mapIntent.setPackage("com.google.android.apps.maps")
                                     context.startActivity(mapIntent)
@@ -301,8 +320,8 @@ fun TaskDetailScreen(
                                 }) {
                                     Text("Clear")
                                 }
-                                }
-                                }
+                            }
+                        }
 
                     } else {
                         Box(
