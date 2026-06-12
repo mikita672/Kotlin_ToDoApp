@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.google.maps.compose)
     implementation(libs.play.services.location)
+    implementation(libs.coil.compose)
     
     // Room
     implementation(libs.androidx.room.runtime)
