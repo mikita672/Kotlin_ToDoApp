@@ -36,6 +36,15 @@ class MainActivity : ComponentActivity() {
                 RequestLocationPermissions()
                 val navController = rememberNavController()
                 AppNavHost(navController = navController)
+
+                LaunchedEffect(Unit) {
+                    if (intent?.getStringExtra("shortcut_action") == "add_task") {
+                        navController.navigate(
+                            com.mdzeviatau.todoapp.ui.navigation.TaskDetailDestination()
+                        )
+                        intent.removeExtra("shortcut_action")
+                    }
+                }
             }
         }
     }
