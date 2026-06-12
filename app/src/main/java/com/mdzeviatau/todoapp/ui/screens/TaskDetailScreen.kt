@@ -53,6 +53,7 @@ fun TaskDetailScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var isMapTouched by remember { mutableStateOf(false) }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(52.2297, 21.0122), 10f)
@@ -191,7 +192,7 @@ fun TaskDetailScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState(), enabled = !isMapTouched),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -238,7 +239,8 @@ fun TaskDetailScreen(
                 onLocationChange = { lat, lng ->
                     latitude = lat
                     longitude = lng
-                })
+                },
+                onMapTouched = { isMapTouched = it })
 
             RepeatSelector(
                 selectedInterval = repeatInterval, onIntervalSelected = { repeatInterval = it })

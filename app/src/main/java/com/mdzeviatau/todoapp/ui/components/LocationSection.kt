@@ -3,13 +3,16 @@ package com.mdzeviatau.todoapp.ui.components
 import android.content.Intent
 import android.net.Uri
 import android.content.pm.PackageManager
+import android.view.MotionEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -20,12 +23,14 @@ import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun LocationSection(
     latitude: Double?,
     longitude: Double?,
     cameraPositionState: CameraPositionState,
-    onLocationChange: (Double?, Double?) -> Unit
+    onLocationChange: (Double?, Double?) -> Unit,
+    onMapTouched: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -33,10 +38,20 @@ fun LocationSection(
     Text("Location", style = MaterialTheme.typography.labelLarge)
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
-            GoogleMap(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp),
+                    .height(250.dp)
+                    .pointerInteropFilter { event ->
+                        when (event.action) {
+                            MotionEvent.ACTION_DOWN -> onMapTouched(true)
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> onMapTouched(false)
+                        }
+                        false
+                    }
+            ) {
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 onMapClick = { latLng ->
                     onLocationChange(latLng.latitude, latLng.longitude)
@@ -66,6 +81,7 @@ fun LocationSection(
                             MarkerState(position = LatLng(latitude, longitude))
                         }, title = "Task Location"
                     )
+                }
                 }
             }
             if (latitude != null && longitude != null) {
