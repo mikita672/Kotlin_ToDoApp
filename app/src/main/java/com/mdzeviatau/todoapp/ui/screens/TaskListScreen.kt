@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
@@ -43,11 +44,13 @@ fun TaskListScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var sortOrder by remember { mutableStateOf(SortOrder.DATE_DESC) }
     var showSortMenu by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val tabs = listOf("To Do", "Today", "Overdue", "Completed")
 
-    val filteredAndSortedTasks = remember(tasks, selectedTabIndex, sortOrder) {
+    val filteredAndSortedTasks = remember(tasks, selectedTabIndex, sortOrder, searchQuery) {
         val baseFiltered = when (selectedTabIndex) {
             0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
             1 -> {
@@ -74,11 +77,21 @@ fun TaskListScreen(
             else -> tasks
         }
 
+        val searchFiltered = if (searchQuery.isBlank()) {
+            baseFiltered
+        } else {
+            val query = searchQuery.lowercase()
+            baseFiltered.filter { task ->
+                task.title.lowercase().contains(query) ||
+                        task.description.lowercase().contains(query)
+            }
+        }
+
         when (sortOrder) {
-            SortOrder.DATE_DESC -> baseFiltered.sortedByDescending { it.createdAt }
-            SortOrder.DATE_ASC -> baseFiltered.sortedBy { it.createdAt }
-            SortOrder.PRIORITY -> baseFiltered.sortedBy { it.priority }
-            SortOrder.CATEGORY -> baseFiltered.sortedBy { it.category.name }
+            SortOrder.DATE_DESC -> searchFiltered.sortedByDescending { it.createdAt }
+            SortOrder.DATE_ASC -> searchFiltered.sortedBy { it.createdAt }
+            SortOrder.PRIORITY -> searchFiltered.sortedBy { it.priority }
+            SortOrder.CATEGORY -> searchFiltered.sortedBy { it.category.name }
         }
     }
 
@@ -117,6 +130,15 @@ fun TaskListScreen(
                 TopAppBar(
                     title = { Text("My Tasks") },
                     actions = {
+                        IconButton(onClick = {
+                            isSearchActive = !isSearchActive
+                            if (!isSearchActive) searchQuery = ""
+                        }) {
+                            Icon(
+                                if (isSearchActive) Icons.Default.SearchOff else Icons.Default.Search,
+                                contentDescription = "Search"
+                            )
+                        }
                         IconButton(onClick = onSettingsClick) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
@@ -162,6 +184,41 @@ fun TaskListScreen(
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
+                if (isSearchActive) {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search tasks...") },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            unfocusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                            focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(0.dp)
+                    )
+                }
                 SecondaryTabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
