@@ -7,9 +7,19 @@ import android.util.Log
 import android.widget.Toast
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
+import com.mdzeviatau.todoapp.TodoApplication
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val app = context.applicationContext as TodoApplication
+        val notificationsEnabled = runBlocking {
+            app.userPreferencesRepository.notificationsEnabledFlow.first()
+        }
+
+        if (!notificationsEnabled) return
+
         Log.d("GeofenceReceiver", "onReceive triggered!")
 
         val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: run {

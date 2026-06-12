@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.google.maps.compose)
     implementation(libs.play.services.location)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.datastore.preferences)
     
     // Room
     implementation(libs.androidx.room.runtime)

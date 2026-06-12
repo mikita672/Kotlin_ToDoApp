@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_task"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_add_task_short"
+        android:shortcutLongLabel="@string/shortcut_add_task_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.mdzeviatau.todoapp"
+            android:targetClass="com.mdzeviatau.todoapp.MainActivity">
+            <extra android:name="shortcut_action" android:value="add_task" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

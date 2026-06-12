@@ -10,17 +10,28 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.mdzeviatau.todoapp.ui.navigation.AppNavHost
 import com.mdzeviatau.todoapp.ui.theme.ToDoAppTheme
+import com.mdzeviatau.todoapp.ui.viewmodel.SettingsViewModel
+import com.mdzeviatau.todoapp.ui.viewmodel.SettingsViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ToDoAppTheme {
+            val app = application as TodoApplication
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModelFactory(app.userPreferencesRepository)
+            )
+            val appTheme by settingsViewModel.themeState.collectAsState()
+
+            ToDoAppTheme(appTheme = appTheme) {
                 RequestNotificationPermission()
                 RequestLocationPermissions()
                 val navController = rememberNavController()

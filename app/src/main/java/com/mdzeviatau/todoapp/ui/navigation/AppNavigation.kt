@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.mdzeviatau.todoapp.TodoApplication
+import com.mdzeviatau.todoapp.ui.screens.SettingsScreen
 import com.mdzeviatau.todoapp.ui.screens.TaskDetailScreen
 import com.mdzeviatau.todoapp.ui.screens.TaskListScreen
-import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
-import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModelFactory
+import com.mdzeviatau.todoapp.ui.viewmodel.*
 
 @Composable
 fun AppNavHost(navController: NavHostController) {
@@ -28,7 +28,8 @@ fun AppNavHost(navController: NavHostController) {
                   TaskListScreen(
                               viewModel = viewModel,
                       onAddTaskClick = { navController.navigate(TaskDetailDestination()) },
-                      onTaskClick = { taskId -> navController.navigate(TaskDetailDestination(taskId)) }
+                      onTaskClick = { taskId -> navController.navigate(TaskDetailDestination(taskId)) },
+                      onSettingsClick = { navController.navigate(SettingsDestination) }
                   )
               }
 
@@ -47,7 +48,16 @@ fun AppNavHost(navController: NavHostController) {
           }
 
          composable<SettingsDestination> {
+             val context = LocalContext.current
+             val app = context.applicationContext as TodoApplication
+             val settingsViewModel: SettingsViewModel = viewModel(
+                 factory = SettingsViewModelFactory(app.userPreferencesRepository)
+             )
 
+             SettingsScreen(
+                 viewModel = settingsViewModel,
+                 onNavigateBack = { navController.popBackStack() }
+             )
          }
      }
  }

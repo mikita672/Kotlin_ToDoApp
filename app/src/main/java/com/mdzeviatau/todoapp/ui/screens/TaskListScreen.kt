@@ -33,7 +33,10 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
-    viewModel: TaskViewModel, onAddTaskClick: () -> Unit, onTaskClick: (String) -> Unit
+    viewModel: TaskViewModel,
+    onAddTaskClick: () -> Unit,
+    onTaskClick: (String) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val context = LocalContext.current
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
@@ -114,6 +117,9 @@ fun TaskListScreen(
                 TopAppBar(
                     title = { Text("My Tasks") },
                     actions = {
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort tasks")
                         }

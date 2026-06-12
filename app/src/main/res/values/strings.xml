@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ToDoApp</string>
+    <string name="shortcut_add_task_short">New Task</string>
+    <string name="shortcut_add_task_long">Add a new task</string>
 </resources>
