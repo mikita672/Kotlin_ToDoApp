@@ -16,24 +16,31 @@ class GeofenceHelper(val context: Context) {
     private val geofencePendingIntent: PendingIntent by lazy {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
         PendingIntent.getBroadcast(
-            context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
     }
 
     @SuppressLint("MissingPermission")
-    fun addGeofence(taskId: String, lat: Double, lng: Double, radiusInMeters: Float = 100f) {
-        val geofence =
-            Geofence.Builder().setRequestId(taskId).setCircularRegion(lat, lng, radiusInMeters)
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER).build()
+    fun addGeofence(taskId: String, lat: Double, lng: Double, radiusInMeters: Float = 200f) {
+        val geofence = Geofence.Builder()
+            .setRequestId(taskId)
+            .setCircularRegion(lat, lng, radiusInMeters)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_DWELL)
+            .setLoiteringDelay(30000)
+            .build()
 
-        val geofencingRequest =
-            GeofencingRequest.Builder().setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-                .addGeofence(geofence).build()
+        val geofencingRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER or GeofencingRequest.INITIAL_TRIGGER_DWELL)
+            .addGeofence(geofence)
+            .build()
 
         geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent).run {
             addOnSuccessListener {
-                Log.d("GeofenceHelper", "Successfully added geofence for task: $taskId")
+                Log.d("GeofenceHelper", "Successfully added geofence (200m) for task: $taskId")
             }
             addOnFailureListener {
                 Log.e("GeofenceHelper", "Failed to add geofence for task: $taskId", it)

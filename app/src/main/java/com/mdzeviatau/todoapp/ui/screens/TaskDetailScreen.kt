@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -199,14 +200,14 @@ fun TaskDetailScreen(
                                                 taskId = task.id,
                                                 title = task.title,
                                                 description = task.description,
-                                                timeInMillis = task.dueDate
+                                                timeInMillis = task.dueDate!!
                                             )
                                         }
 
                                         geofenceHelper.removeGeofence(task.id)
                                         if (task.latitude != null && task.longitude != null && task.status != TaskStatus.COMPLETED) {
                                             geofenceHelper.addGeofence(
-                                                task.id, task.latitude, task.longitude
+                                                task.id, task.latitude!!, task.longitude!!
                                             )
                                         }
 
@@ -267,13 +268,33 @@ fun TaskDetailScreen(
                     GoogleMap(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .height(250.dp),
                         cameraPositionState = cameraPositionState,
                         onMapClick = { latLng ->
                             latitude = latLng.latitude
                             longitude = latLng.longitude
+                            scope.launch {
+                                cameraPositionState.animate(CameraUpdateFactory.newLatLng(latLng))
+                            }
                         },
-                        uiSettings = remember { MapUiSettings(zoomControlsEnabled = false) }) {
+                        onMapLongClick = { latLng ->
+                            latitude = latLng.latitude
+                            longitude = latLng.longitude
+                            scope.launch {
+                                cameraPositionState.animate(CameraUpdateFactory.newLatLng(latLng))
+                            }
+                        },
+                        properties = MapProperties(
+                            isMyLocationEnabled = ContextCompat.checkSelfPermission(
+                                context, android.Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ),
+                        uiSettings = remember {
+                            MapUiSettings(
+                                zoomControlsEnabled = false,
+                                scrollGesturesEnabled = true
+                            )
+                        }) {
                         if (latitude != null && longitude != null) {
                             Marker(
                                 state = remember(latitude, longitude) {
