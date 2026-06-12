@@ -1,5 +1,7 @@
 package com.mdzeviatau.todoapp.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -280,22 +282,28 @@ fun TaskDetailScreen(
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    text = String.format(
-                                        Locale.ENGLISH,
-                                        "%.4f, %.4f",
-                                        latitude,
-                                        longitude
-                                    ),
+                                    text = String.format(Locale.ENGLISH, "%.4f, %.4f", latitude, longitude),
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                            }
-                            TextButton(onClick = {
-                                latitude = null
-                                longitude = null
-                            }) {
-                                Text("Clear")
-                            }
-                        }
+                                }
+                                Row {
+                                TextButton(onClick = {
+                                    val gmmIntentUri = Uri.parse("google.navigation:q=$latitude,$longitude")
+                                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                    mapIntent.setPackage("com.google.android.apps.maps")
+                                    context.startActivity(mapIntent)
+                                }) {
+                                    Text("Navigate")
+                                }
+                                TextButton(onClick = {
+                                    latitude = null
+                                    longitude = null
+                                }) {
+                                    Text("Clear")
+                                }
+                                }
+                                }
+
                     } else {
                         Box(
                             modifier = Modifier
