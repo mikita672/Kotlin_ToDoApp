@@ -12,8 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.mdzeviatau.todoapp.data.models.task.*
+import com.mdzeviatau.todoapp.ui.notifications.NotificationHelper
 import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -28,12 +30,14 @@ import java.util.Calendar
 fun TaskDetailScreen(
     taskId: String?, viewModel: TaskViewModel, onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(TaskPriority.LOW) }
     var category by remember { mutableStateOf(TaskCategory.OTHER) }
+    var repeatInterval by remember { mutableStateOf(RepeatInterval.NONE) }
     var dueDateMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -46,6 +50,7 @@ fun TaskDetailScreen(
                 description = task.description
                 priority = task.priority
                 category = task.category
+                repeatInterval = task.repeatInterval
                 dueDateMillis = task.dueDate
             }
         }
@@ -121,6 +126,7 @@ fun TaskDetailScreen(
                                                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                                             priority = priority,
                                             category = category,
+                                            repeatInterval = repeatInterval,
                                             dueDate = dueDateMillis
                                         )
                                     } else {
@@ -129,14 +135,29 @@ fun TaskDetailScreen(
                                             description = description,
                                             priority = priority,
                                             category = category,
+                                            repeatInterval = repeatInterval,
                                             dueDate = dueDateMillis
                                         )
                                     }
 
                                     if (task != null) {
-                                        if (taskId == null) viewModel.addTask(task) else viewModel.updateTask(
-                                            task
-                                        )
+                                        if (taskId == null) {
+                                            viewModel.addTask(task)
+                                        } else {
+                                            viewModel.updateTask(task)
+                                        }
+
+                                        NotificationHelper.cancelNotification(context, task.id)
+                                        if (task.dueDate != null && task.status != TaskStatus.COMPLETED) {
+                                            NotificationHelper.scheduleNotification(
+                                                context = context,
+                                                taskId = task.id,
+                                                title = task.title,
+                                                description = task.description,
+                                                timeInMillis = task.dueDate!!
+                                            )
+                                        }
+
                                         onNavigateBack()
                                     }
                                 }
@@ -184,6 +205,25 @@ fun TaskDetailScreen(
                                 Instant.ofEpochMilli(dueDateMillis!!).atZone(ZoneId.systemDefault())
                             dt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
                         } else "Choose date and time", style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
+            Text("Repeat", style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RepeatInterval.entries.forEach { interval ->
+                    FilterChip(
+                        selected = repeatInterval == interval,
+                        onClick = { repeatInterval = interval },
+                        label = {
+                            Text(
+                                interval.name.lowercase().replaceFirstChar { it.uppercase() })
+                        }
                     )
                 }
             }

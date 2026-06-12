@@ -5,8 +5,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.mdzeviatau.todoapp.data.models.task.RepeatInterval
 import com.mdzeviatau.todoapp.data.models.task.TaskCategory
 import com.mdzeviatau.todoapp.data.models.task.TaskPriority
+import java.time.Instant
+import java.time.ZoneId
 
 @Composable
 fun getPriorityIcon(priority: TaskPriority): ImageVector = when (priority) {
@@ -33,6 +36,18 @@ fun getCategoryIcon(category: TaskCategory): ImageVector = when (category) {
     TaskCategory.HOME -> Icons.Default.Home
     TaskCategory.HOBBY -> Icons.Default.Palette
     TaskCategory.OTHER -> Icons.Default.Category
+}
+
+fun calculateNextDueDate(currentDate: Long, interval: RepeatInterval): Long {
+    val localDateTime =
+        Instant.ofEpochMilli(currentDate).atZone(ZoneId.systemDefault()).toLocalDateTime()
+    val nextDateTime = when (interval) {
+        RepeatInterval.DAILY -> localDateTime.plusDays(1)
+        RepeatInterval.WEEKLY -> localDateTime.plusWeeks(1)
+        RepeatInterval.MONTHLY -> localDateTime.plusMonths(1)
+        RepeatInterval.NONE -> localDateTime
+    }
+    return nextDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 }
 
 fun String.capitalize() =

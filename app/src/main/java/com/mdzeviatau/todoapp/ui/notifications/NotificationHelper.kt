@@ -1,6 +1,5 @@
 package com.mdzeviatau.todoapp.ui.notifications
 
-import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -9,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.mdzeviatau.todoapp.MainActivity
@@ -52,7 +50,7 @@ object NotificationHelper {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
-                    context, Manifest.permission.POST_NOTIFICATIONS
+                    context, android.Manifest.permission.POST_NOTIFICATIONS
                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             ) {
                 notificationManager.notify(taskId.hashCode(), builder.build())
@@ -62,7 +60,6 @@ object NotificationHelper {
         }
     }
 
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     fun scheduleNotification(
         context: Context, taskId: String, title: String, description: String, timeInMillis: Long
     ) {
@@ -99,6 +96,14 @@ object NotificationHelper {
                     AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
                 )
             }
+        } catch (e: SecurityException) {
+            Log.e(
+                "NotificationHelper",
+                "Missing exact alarm permission, falling back to inexact: ${e.message}"
+            )
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
+            )
         } catch (e: Exception) {
             Log.e("NotificationHelper", "Error while planning the alarm: ${e.message}")
         }

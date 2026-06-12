@@ -13,21 +13,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mdzeviatau.todoapp.data.models.task.RepeatInterval
+import com.mdzeviatau.todoapp.data.models.task.Task
 import com.mdzeviatau.todoapp.data.models.task.TaskStatus
 import com.mdzeviatau.todoapp.ui.components.TaskItem
+import com.mdzeviatau.todoapp.ui.notifications.NotificationHelper
 import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
     viewModel: TaskViewModel, onAddTaskClick: () -> Unit, onTaskClick: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var sortOrder by remember { mutableStateOf(SortOrder.DATE_DESC) }
@@ -71,55 +79,105 @@ fun TaskListScreen(
         }
     }
 
-    Scaffold(topBar = {
-        Column {
-            TopAppBar(
-                title = { Text("My Tasks") }, actions = {
-                IconButton(onClick = { showSortMenu = true }) {
-                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort tasks")
-                }
-                DropdownMenu(
-                    expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
-                    DropdownMenuItem(text = { Text("Newest First") }, onClick = {
-                        sortOrder = SortOrder.DATE_DESC
-                        showSortMenu = false
-                    })
-                    DropdownMenuItem(text = { Text("Oldest First") }, onClick = {
-                        sortOrder = SortOrder.DATE_ASC
-                        showSortMenu = false
-                    })
-                    DropdownMenuItem(text = { Text("Sort by Priority") }, onClick = {
-                        sortOrder = SortOrder.PRIORITY
-                        showSortMenu = false
-                    })
-                    DropdownMenuItem(text = { Text("Sort by Category") }, onClick = {
-                        sortOrder = SortOrder.CATEGORY
-                        showSortMenu = false
-                    })
-                }
-            }, colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    fun handleTaskStatusChange(task: Task, isCompleted: Boolean) {
+        val newStatus = if (isCompleted) TaskStatus.COMPLETED else TaskStatus.TODO
+        val updatedTask = task.copy(status = newStatus)
+        viewModel.updateTask(updatedTask)
+
+        if (newStatus == TaskStatus.COMPLETED) {
+            NotificationHelper.cancelNotification(context, task.id)
+
+            if (task.repeatInterval != RepeatInterval.NONE && task.dueDate != null) {
+                val nextDueDate = calculateNextDueDate(task.dueDate, task.repeatInterval)
+                val nextTask = task.copy(
+                    id = UUID.randomUUID().toString(),
+                    status = TaskStatus.TODO,
+                    dueDate = nextDueDate,
+                    createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                )
+                viewModel.addTask(nextTask)
+
+                NotificationHelper.scheduleNotification(
+                    context, nextTask.id, nextTask.title, nextTask.description, nextTask.dueDate!!
+                )
+            }
+        } else if (task.dueDate != null) {
+            NotificationHelper.scheduleNotification(
+                context, task.id, task.title, task.description, task.dueDate
             )
-            )
-            SecondaryTabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
-                        text = { Text(text = title) })
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = { Text("My Tasks") },
+                    actions = {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort tasks")
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Newest First") },
+                                onClick = {
+                                    sortOrder = SortOrder.DATE_DESC
+                                    showSortMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Oldest First") },
+                                onClick = {
+                                    sortOrder = SortOrder.DATE_ASC
+                                    showSortMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Sort by Priority") },
+                                onClick = {
+                                    sortOrder = SortOrder.PRIORITY
+                                    showSortMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Sort by Category") },
+                                onClick = {
+                                    sortOrder = SortOrder.CATEGORY
+                                    showSortMenu = false
+                                }
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(text = title) }
+                        )
+                    }
                 }
             }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddTaskClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add task")
+            }
         }
-    }, snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, floatingActionButton = {
-        FloatingActionButton(onClick = onAddTaskClick) {
-            Icon(Icons.Default.Add, contentDescription = "Add task")
-        }
-    }) { innerPadding ->
+    ) { innerPadding ->
         if (filteredAndSortedTasks.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -135,7 +193,8 @@ fun TaskListScreen(
                     else -> "No tasks found."
                 }
                 Text(
-                    text = emptyMessage, style = MaterialTheme.typography.bodyLarge
+                    text = emptyMessage,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         } else {
@@ -153,14 +212,14 @@ fun TaskListScreen(
                     LaunchedEffect(dismissState.currentValue) {
                         when (dismissState.currentValue) {
                             SwipeToDismissBoxValue.StartToEnd -> {
-                                val newStatus =
-                                    if (isCompletedTab) TaskStatus.TODO else TaskStatus.COMPLETED
-                                viewModel.updateTask(task.copy(status = newStatus))
+                                handleTaskStatusChange(task, !isCompletedTab)
                                 dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                             }
 
                             SwipeToDismissBoxValue.EndToStart -> {
                                 viewModel.deleteTask(task)
+                                NotificationHelper.cancelNotification(context, task.id)
+
                                 scope.launch {
                                     val result = snackbarHostState.showSnackbar(
                                         message = "Task deleted",
@@ -169,6 +228,15 @@ fun TaskListScreen(
                                     )
                                     if (result == SnackbarResult.ActionPerformed) {
                                         viewModel.addTask(task)
+                                        if (task.dueDate != null && task.status != TaskStatus.COMPLETED) {
+                                            NotificationHelper.scheduleNotification(
+                                                context,
+                                                task.id,
+                                                task.title,
+                                                task.description,
+                                                task.dueDate
+                                            )
+                                        }
                                     }
                                 }
                                 dismissState.snapTo(SwipeToDismissBoxValue.Settled)
@@ -179,7 +247,8 @@ fun TaskListScreen(
                     }
 
                     SwipeToDismissBox(
-                        state = dismissState, backgroundContent = {
+                        state = dismissState,
+                        backgroundContent = {
                             val direction = dismissState.dismissDirection
                             val color by animateColorAsState(
                                 when (dismissState.targetValue) {
@@ -206,7 +275,8 @@ fun TaskListScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(color, MaterialTheme.shapes.medium)
-                                    .padding(horizontal = 20.dp), contentAlignment = alignment
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = alignment
                             ) {
                                 icon?.let {
                                     Icon(
@@ -216,15 +286,15 @@ fun TaskListScreen(
                                     )
                                 }
                             }
-                        }) {
+                        }
+                    ) {
                         TaskItem(
                             task = task,
                             onTaskClick = { onTaskClick(task.id) },
                             onStatusChange = { isCompleted ->
-                                val newStatus =
-                                    if (isCompleted) TaskStatus.COMPLETED else TaskStatus.TODO
-                                viewModel.updateTask(task.copy(status = newStatus))
-                            })
+                                handleTaskStatusChange(task, isCompleted)
+                            }
+                        )
                     }
                 }
             }
