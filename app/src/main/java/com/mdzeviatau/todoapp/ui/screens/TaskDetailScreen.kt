@@ -3,9 +3,11 @@ package com.mdzeviatau.todoapp.ui.screens
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -18,15 +20,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -65,8 +70,25 @@ fun TaskDetailScreen(
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri ->
             if (uri != null) {
-                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(uri, flag)
+                try {
+                    val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(uri, flag)
+                } catch (e: Exception) {
+                    Log.e("TaskDetailScreen", "Error persisting URI permission for photo: $uri", e)
+                }
+                attachments = attachments + uri.toString()
+            }
+        })
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(), onResult = { uri ->
+            if (uri != null) {
+                try {
+                    val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(uri, flag)
+                } catch (e: Exception) {
+                    Log.e("TaskDetailScreen", "Error persisting URI permission for file: $uri", e)
+                }
                 attachments = attachments + uri.toString()
             }
         })
@@ -330,23 +352,35 @@ fun TaskDetailScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             items(attachments) { uriString ->
-                                AsyncImage(
-                                    model = uriString,
-                                    contentDescription = "Attachment preview",
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(0.dp))
-                                        .clickable { fullScreenImageUri = uriString },
-                                    contentScale = ContentScale.Crop
-                                )
+                                val uri = Uri.parse(uriString)
+                                AttachmentItem(uri = uri, onDelete = {
+                                    attachments = attachments.filter { it != uriString }
+                                }, onClick = {
+                                    if (isImage(context, uri)) {
+                                        fullScreenImageUri = uriString
+                                    } else {
+                                        openFile(context, uri)
+                                    }
+                                })
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
-                    Button(onClick = {
-                        photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) {
-                        Text("Add Photo")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        }) {
+                            Text("Add Photo")
+                        }
+                        Button(onClick = {
+                            filePickerLauncher.launch("*/*")
+                        }) {
+                            Text("Add File")
+                        }
                     }
                 }
             }
@@ -509,6 +543,63 @@ fun TaskDetailScreen(
                         })
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AttachmentItem(uri: Uri, onDelete: () -> Unit, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val isImage = remember(uri) { isImage(context, uri) }
+    val fileName = remember(uri) { getFileName(context, uri) }
+
+    Box(modifier = Modifier.size(80.dp)) {
+        if (isImage) {
+            AsyncImage(
+                model = uri,
+                contentDescription = "Attachment preview",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(0.dp))
+                    .clickable { onClick() },
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onClick() },
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(0.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(Icons.Default.Description, contentDescription = null)
+                    Text(
+                        text = fileName,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(24.dp)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+        ) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Delete attachment",
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

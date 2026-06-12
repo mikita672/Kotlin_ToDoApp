@@ -1,5 +1,10 @@
 package com.mdzeviatau.todoapp.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
@@ -52,3 +57,39 @@ fun calculateNextDueDate(currentDate: Long, interval: RepeatInterval): Long {
 
 fun String.capitalize() =
     this.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+
+fun getFileName(context: Context, uri: Uri): String {
+    var name = "Unknown"
+    try {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    name = it.getString(nameIndex)
+                }
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("TaskUiUtils", "Error getting file name for URI: $uri", e)
+        name = uri.lastPathSegment ?: "Unknown"
+    }
+    return name
+}
+
+fun isImage(context: Context, uri: Uri): Boolean {
+    val mimeType = context.contentResolver.getType(uri)
+    return mimeType?.startsWith("image/") == true
+}
+
+fun openFile(context: Context, uri: Uri) {
+    try {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, context.contentResolver.getType(uri))
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Open with"))
+    } catch (e: Exception) {
+        Log.e("TaskUiUtils", "Error opening file: $uri", e)
+    }
+}
