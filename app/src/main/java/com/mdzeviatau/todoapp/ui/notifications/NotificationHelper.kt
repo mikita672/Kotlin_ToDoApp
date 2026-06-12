@@ -1,5 +1,6 @@
 package com.mdzeviatau.todoapp.ui.notifications
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -18,16 +19,18 @@ object NotificationHelper {
     const val CHANNEL_DESCRIPTION = "Notifications for tasks"
 
     fun createNotificationChannel(context: Context) {
-        val importance = NotificationManager.IMPORTANCE_HIGH
-        val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-            description = CHANNEL_DESCRIPTION
-            enableLights(true)
-            enableVibration(true)
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
+                description = CHANNEL_DESCRIPTION
+                enableLights(true)
+                enableVibration(true)
+            }
 
-        val notificationManager: NotificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
+            val notificationManager: NotificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 
     fun showNotification(context: Context, taskId: String, title: String, description: String) {
@@ -60,6 +63,7 @@ object NotificationHelper {
         }
     }
 
+    @SuppressLint("MissingPermission")
     fun scheduleNotification(
         context: Context, taskId: String, title: String, description: String, timeInMillis: Long
     ) {
@@ -92,9 +96,15 @@ object NotificationHelper {
                     )
                 }
             } else {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
-                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
+                    )
+                } else {
+                    alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent
+                    )
+                }
             }
         } catch (e: SecurityException) {
             Log.e(

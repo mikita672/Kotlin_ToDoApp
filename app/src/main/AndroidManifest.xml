@@ -27,6 +27,10 @@
             android:name=".ui.notifications.TaskReminderReceiver"
             android:enabled="true"
             android:exported="false" />
+        <receiver
+            android:name=".ui.notifications.GeofenceBroadcastReceiver"
+            android:enabled="true"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

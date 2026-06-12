@@ -19,6 +19,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.mdzeviatau.todoapp.data.models.task.*
+import com.mdzeviatau.todoapp.ui.notifications.GeofenceHelper
 import com.mdzeviatau.todoapp.ui.notifications.NotificationHelper
 import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
@@ -28,6 +29,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +38,7 @@ fun TaskDetailScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val geofenceHelper = remember { GeofenceHelper(context) }
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -86,7 +89,7 @@ fun TaskDetailScreen(
                 showTimePicker = true
             }) { Text("Ok") }
         }, dismissButton = {
-            TextButton(onClick = { showDatePicker = false }) { Text("Undo") }
+            TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
         }) {
             DatePicker(state = datePickerState)
         }
@@ -115,7 +118,7 @@ fun TaskDetailScreen(
                 showTimePicker = false
             }) { Text("Ok") }
         }, dismissButton = {
-            TextButton(onClick = { showTimePicker = false }) { Text("Undo") }
+            TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
         }, text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 TimePicker(state = timePickerState)
@@ -177,7 +180,14 @@ fun TaskDetailScreen(
                                                 taskId = task.id,
                                                 title = task.title,
                                                 description = task.description,
-                                                timeInMillis = task.dueDate!!
+                                                timeInMillis = task.dueDate
+                                            )
+                                        }
+
+                                        geofenceHelper.removeGeofence(task.id)
+                                        if (task.latitude != null && task.longitude != null && task.status != TaskStatus.COMPLETED) {
+                                            geofenceHelper.addGeofence(
+                                                task.id, task.latitude, task.longitude
                                             )
                                         }
 
@@ -209,7 +219,7 @@ fun TaskDetailScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Opis") },
+                label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -270,7 +280,12 @@ fun TaskDetailScreen(
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    text = String.format("%.4f, %.4f", latitude, longitude),
+                                    text = String.format(
+                                        Locale.ENGLISH,
+                                        "%.4f, %.4f",
+                                        latitude,
+                                        longitude
+                                    ),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
