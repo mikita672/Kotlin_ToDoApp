@@ -3,6 +3,9 @@ package com.mdzeviatau.todoapp.ui.screens
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +50,17 @@ fun TaskDetailScreen(
     val geofenceHelper = remember { GeofenceHelper(context) }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
+    var attachments by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri ->
+            if (uri != null) {
+                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(uri, flag)
+                attachments = attachments + uri.toString()
+            }
+        })
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(TaskPriority.LOW) }
@@ -75,6 +89,7 @@ fun TaskDetailScreen(
                 dueDateMillis = task.dueDate
                 latitude = task.latitude
                 longitude = task.longitude
+                attachments = task.attachments
 
                 if (task.latitude != null && task.longitude != null) {
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(
@@ -171,7 +186,8 @@ fun TaskDetailScreen(
                                             repeatInterval = repeatInterval,
                                             dueDate = dueDateMillis,
                                             latitude = latitude,
-                                            longitude = longitude
+                                            longitude = longitude,
+                                            attachments = attachments
                                         )
                                     } else {
                                         viewModel.getTaskById(taskId)?.copy(
@@ -182,7 +198,8 @@ fun TaskDetailScreen(
                                             repeatInterval = repeatInterval,
                                             dueDate = dueDateMillis,
                                             latitude = latitude,
-                                            longitude = longitude
+                                            longitude = longitude,
+                                            attachments = attachments
                                         )
                                     }
 
@@ -262,6 +279,27 @@ fun TaskDetailScreen(
                 }
             }
 
+            Text("Attachments", style = MaterialTheme.typography.labelLarge)
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (attachments.isNotEmpty()) {
+                        attachments.forEach { uriString ->
+                            Text(
+                                text = uriString,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    Button(onClick = {
+                        photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) {
+                        Text("Add Photo")
+                    }
+                }
+            }
+
             Text("Location", style = MaterialTheme.typography.labelLarge)
             OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
@@ -291,8 +329,7 @@ fun TaskDetailScreen(
                         ),
                         uiSettings = remember {
                             MapUiSettings(
-                                zoomControlsEnabled = false,
-                                scrollGesturesEnabled = true
+                                zoomControlsEnabled = false, scrollGesturesEnabled = true
                             )
                         }) {
                         if (latitude != null && longitude != null) {
