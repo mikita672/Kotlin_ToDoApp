@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
 import com.mdzeviatau.todoapp.data.models.task.*
 import com.mdzeviatau.todoapp.ui.notifications.NotificationHelper
 import com.mdzeviatau.todoapp.ui.viewmodel.TaskViewModel
@@ -39,8 +43,15 @@ fun TaskDetailScreen(
     var category by remember { mutableStateOf(TaskCategory.OTHER) }
     var repeatInterval by remember { mutableStateOf(RepeatInterval.NONE) }
     var dueDateMillis by remember { mutableStateOf<Long?>(null) }
+    var latitude by remember { mutableStateOf<Double?>(null) }
+    var longitude by remember { mutableStateOf<Double?>(null) }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(52.2297, 21.0122), 10f)
+    }
 
     LaunchedEffect(taskId) {
         if (taskId != null) {
@@ -52,6 +63,14 @@ fun TaskDetailScreen(
                 category = task.category
                 repeatInterval = task.repeatInterval
                 dueDateMillis = task.dueDate
+                latitude = task.latitude
+                longitude = task.longitude
+
+                if (task.latitude != null && task.longitude != null) {
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                        LatLng(task.latitude, task.longitude), 15f
+                    )
+                }
             }
         }
     }
@@ -127,7 +146,9 @@ fun TaskDetailScreen(
                                             priority = priority,
                                             category = category,
                                             repeatInterval = repeatInterval,
-                                            dueDate = dueDateMillis
+                                            dueDate = dueDateMillis,
+                                            latitude = latitude,
+                                            longitude = longitude
                                         )
                                     } else {
                                         viewModel.getTaskById(taskId)?.copy(
@@ -136,7 +157,9 @@ fun TaskDetailScreen(
                                             priority = priority,
                                             category = category,
                                             repeatInterval = repeatInterval,
-                                            dueDate = dueDateMillis
+                                            dueDate = dueDateMillis,
+                                            latitude = latitude,
+                                            longitude = longitude
                                         )
                                     }
 
@@ -209,6 +232,72 @@ fun TaskDetailScreen(
                 }
             }
 
+            Text("Location", style = MaterialTheme.typography.labelLarge)
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    GoogleMap(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        cameraPositionState = cameraPositionState,
+                        onMapClick = { latLng ->
+                            latitude = latLng.latitude
+                            longitude = latLng.longitude
+                        },
+                        uiSettings = MapUiSettings(zoomControlsEnabled = false)
+                    ) {
+                        if (latitude != null && longitude != null) {
+                            Marker(
+                                state = MarkerState(position = LatLng(latitude!!, longitude!!)),
+                                title = "Task Location"
+                            )
+                        }
+                    }
+                    if (latitude != null && longitude != null) {
+                        Row(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = String.format("%.4f, %.4f", latitude, longitude),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            TextButton(onClick = {
+                                latitude = null
+                                longitude = null
+                            }) {
+                                Text("Clear")
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Tap map to set location",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             Text("Repeat", style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier
@@ -223,8 +312,7 @@ fun TaskDetailScreen(
                         label = {
                             Text(
                                 interval.name.lowercase().replaceFirstChar { it.uppercase() })
-                        }
-                    )
+                        })
                 }
             }
 
