@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mdzeviatau.todoapp.data.models.task.RepeatInterval
 import com.mdzeviatau.todoapp.data.models.task.Task
+import com.mdzeviatau.todoapp.data.models.task.TaskCategory
 import com.mdzeviatau.todoapp.data.models.task.TaskStatus
 import com.mdzeviatau.todoapp.ui.components.TaskItem
 import com.mdzeviatau.todoapp.ui.notifications.NotificationHelper
@@ -42,6 +44,7 @@ fun TaskListScreen(
     val context = LocalContext.current
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedCategory by remember { mutableStateOf<TaskCategory?>(null) }
     var sortOrder by remember { mutableStateOf(SortOrder.DATE_DESC) }
     var showSortMenu by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -50,7 +53,7 @@ fun TaskListScreen(
     val scope = rememberCoroutineScope()
     val tabs = listOf("To Do", "Today", "Overdue", "Completed")
 
-    val filteredAndSortedTasks = remember(tasks, selectedTabIndex, sortOrder, searchQuery) {
+    val filteredAndSortedTasks = remember(tasks, selectedTabIndex, selectedCategory, sortOrder, searchQuery) {
         val baseFiltered = when (selectedTabIndex) {
             0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
             1 -> {
@@ -87,11 +90,17 @@ fun TaskListScreen(
             }
         }
 
+        val categoryFiltered = if (selectedCategory == null) {
+            searchFiltered
+        } else {
+            searchFiltered.filter { it.category == selectedCategory }
+        }
+
         when (sortOrder) {
-            SortOrder.DATE_DESC -> searchFiltered.sortedByDescending { it.createdAt }
-            SortOrder.DATE_ASC -> searchFiltered.sortedBy { it.createdAt }
-            SortOrder.PRIORITY -> searchFiltered.sortedBy { it.priority }
-            SortOrder.CATEGORY -> searchFiltered.sortedBy { it.category.name }
+            SortOrder.DATE_DESC -> categoryFiltered.sortedByDescending { it.createdAt }
+            SortOrder.DATE_ASC -> categoryFiltered.sortedBy { it.createdAt }
+            SortOrder.PRIORITY -> categoryFiltered.sortedBy { it.priority }
+            SortOrder.CATEGORY -> categoryFiltered.sortedBy { it.category.name }
         }
     }
 
@@ -229,6 +238,35 @@ fun TaskListScreen(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
                             text = { Text(text = title) }
+                        )
+                    }
+                }
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == null,
+                            onClick = { selectedCategory = null },
+                            label = { Text("All") }
+                        )
+                    }
+                    items(TaskCategory.entries.toTypedArray()) { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category.name.lowercase().capitalize()) },
+                            leadingIcon = {
+                                Icon(
+                                    getCategoryIcon(category),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize)
+                                )
+                            }
                         )
                     }
                 }

@@ -3,16 +3,14 @@ package com.mdzeviatau.todoapp.ui.components
 import android.content.Intent
 import android.net.Uri
 import android.content.pm.PackageManager
-import android.view.MotionEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -23,7 +21,6 @@ import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun LocationSection(
     latitude: Double?,
@@ -42,12 +39,14 @@ fun LocationSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(250.dp)
-                    .pointerInteropFilter { event ->
-                        when (event.action) {
-                            MotionEvent.ACTION_DOWN -> onMapTouched(true)
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> onMapTouched(false)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                val isTouched = event.changes.any { it.pressed }
+                                onMapTouched(isTouched)
+                            }
                         }
-                        false
                     }
             ) {
                 GoogleMap(
