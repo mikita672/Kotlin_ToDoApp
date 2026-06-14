@@ -1,6 +1,5 @@
 package com.mdzeviatau.todoapp.ui.components
 
-import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,7 +30,10 @@ import coil3.compose.AsyncImage
 import com.mdzeviatau.todoapp.ui.screens.getFileName
 import com.mdzeviatau.todoapp.ui.screens.isImage
 import com.mdzeviatau.todoapp.ui.screens.openFile
+import com.mdzeviatau.todoapp.ui.screens.saveUriToInternalStorage
 import java.io.File
+import java.util.UUID
+import androidx.core.net.toUri
 
 @Composable
 fun AttachmentSection(
@@ -44,13 +46,10 @@ fun AttachmentSection(
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri ->
             if (uri != null) {
-                try {
-                    val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    context.contentResolver.takePersistableUriPermission(uri, flag)
-                } catch (e: Exception) {
-                    Log.e("AttachmentSection", "Error persisting URI permission for photo: $uri", e)
+                val internalUri = saveUriToInternalStorage(context, uri)
+                if (internalUri != null) {
+                    onAttachmentsChange(attachments + internalUri.toString())
                 }
-                onAttachmentsChange(attachments + uri.toString())
             }
         })
 
@@ -64,13 +63,10 @@ fun AttachmentSection(
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(), onResult = { uri ->
             if (uri != null) {
-                try {
-                    val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    context.contentResolver.takePersistableUriPermission(uri, flag)
-                } catch (e: Exception) {
-                    Log.e("AttachmentSection", "Error persisting URI permission for file: $uri", e)
+                val internalUri = saveUriToInternalStorage(context, uri)
+                if (internalUri != null) {
+                    onAttachmentsChange(attachments + internalUri.toString())
                 }
-                onAttachmentsChange(attachments + uri.toString())
             }
         })
 
@@ -88,7 +84,7 @@ fun AttachmentSection(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(attachments) { uriString ->
-                        val uri = Uri.parse(uriString)
+                        val uri = uriString.toUri()
                         AttachmentItem(uri = uri, onDelete = {
                             onAttachmentsChange(attachments.filter { it != uriString })
                         }, onClick = {
@@ -106,9 +102,9 @@ fun AttachmentSection(
                 Button(
                     onClick = {
                         val uri = try {
-                            val directory = File(context.filesDir, "Pictures")
+                            val directory = File(context.filesDir, "attachments")
                             if (!directory.exists()) directory.mkdirs()
-                            val file = File.createTempFile("IMG_", ".jpg", directory)
+                            val file = File(directory, "IMG_${UUID.randomUUID()}.jpg")
                             FileProvider.getUriForFile(
                                 context, "com.mdzeviatau.todoapp.fileprovider", file
                             )
