@@ -1,4 +1,5 @@
 package com.mdzeviatau.todoapp.ui.notifications
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -9,8 +10,8 @@ import kotlinx.coroutines.runBlocking
 class TaskReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext as TodoApplication
-        val notificationsEnabled = runBlocking { 
-            app.userPreferencesRepository.notificationsEnabledFlow.first() 
+        val notificationsEnabled = runBlocking {
+            app.userPreferencesRepository.notificationsEnabledFlow.first()
         }
 
         if (!notificationsEnabled) return

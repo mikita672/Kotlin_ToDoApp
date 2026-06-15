@@ -1,7 +1,6 @@
 package com.mdzeviatau.todoapp.ui.components
 
 import android.content.Intent
-import android.net.Uri
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,11 +14,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 import java.util.Locale
+import androidx.core.net.toUri
 
 @Composable
 fun LocationSection(
@@ -42,7 +41,8 @@ fun LocationSection(
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
-                                val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                val event =
+                                    awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
                                 val isTouched = event.changes.any { it.pressed }
                                 onMapTouched(isTouched)
                             }
@@ -51,36 +51,36 @@ fun LocationSection(
             ) {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                onMapClick = { latLng ->
-                    onLocationChange(latLng.latitude, latLng.longitude)
-                    scope.launch {
-                        cameraPositionState.animate(CameraUpdateFactory.newLatLng(latLng))
+                    cameraPositionState = cameraPositionState,
+                    onMapClick = { latLng ->
+                        onLocationChange(latLng.latitude, latLng.longitude)
+                        scope.launch {
+                            cameraPositionState.animate(CameraUpdateFactory.newLatLng(latLng))
+                        }
+                    },
+                    onMapLongClick = { latLng ->
+                        onLocationChange(latLng.latitude, latLng.longitude)
+                        scope.launch {
+                            cameraPositionState.animate(CameraUpdateFactory.newLatLng(latLng))
+                        }
+                    },
+                    properties = MapProperties(
+                        isMyLocationEnabled = ContextCompat.checkSelfPermission(
+                            context, android.Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ),
+                    uiSettings = remember {
+                        MapUiSettings(
+                            zoomControlsEnabled = false, scrollGesturesEnabled = true
+                        )
+                    }) {
+                    if (latitude != null && longitude != null) {
+                        Marker(
+                            state = remember(latitude, longitude) {
+                                MarkerState(position = LatLng(latitude, longitude))
+                            }, title = "Task Location"
+                        )
                     }
-                },
-                onMapLongClick = { latLng ->
-                    onLocationChange(latLng.latitude, latLng.longitude)
-                    scope.launch {
-                        cameraPositionState.animate(CameraUpdateFactory.newLatLng(latLng))
-                    }
-                },
-                properties = MapProperties(
-                    isMyLocationEnabled = ContextCompat.checkSelfPermission(
-                        context, android.Manifest.permission.ACCESS_FINE_LOCATION
-                    ) == PackageManager.PERMISSION_GRANTED
-                ),
-                uiSettings = remember {
-                    MapUiSettings(
-                        zoomControlsEnabled = false, scrollGesturesEnabled = true
-                    )
-                }) {
-                if (latitude != null && longitude != null) {
-                    Marker(
-                        state = remember(latitude, longitude) {
-                            MarkerState(position = LatLng(latitude, longitude))
-                        }, title = "Task Location"
-                    )
-                }
                 }
             }
             if (latitude != null && longitude != null) {
@@ -108,7 +108,7 @@ fun LocationSection(
                     Row {
                         TextButton(onClick = {
                             val gmmIntentUri =
-                                Uri.parse("google.navigation:q=$latitude,$longitude")
+                                "google.navigation:q=$latitude,$longitude".toUri()
                             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                             mapIntent.setPackage("com.google.android.apps.maps")
                             context.startActivity(mapIntent)

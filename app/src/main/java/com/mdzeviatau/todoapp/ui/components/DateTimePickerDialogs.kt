@@ -25,17 +25,13 @@ fun DateTimePickerDialogs(
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dueDateMillis ?: System.currentTimeMillis()
         )
-        DatePickerDialog(
-            onDismissRequest = onDatePickerDismiss,
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { onDateSelected(it) }
-                }) { Text("Ok") }
-            },
-            dismissButton = {
-                TextButton(onClick = onDatePickerDismiss) { Text("Cancel") }
-            }
-        ) {
+        DatePickerDialog(onDismissRequest = onDatePickerDismiss, confirmButton = {
+            TextButton(onClick = {
+                datePickerState.selectedDateMillis?.let { onDateSelected(it) }
+            }) { Text("Ok") }
+        }, dismissButton = {
+            TextButton(onClick = onDatePickerDismiss) { Text("Cancel") }
+        }) {
             DatePicker(state = datePickerState)
         }
     }
@@ -50,28 +46,23 @@ fun DateTimePickerDialogs(
             is24Hour = true
         )
 
-        AlertDialog(
-            onDismissRequest = onTimePickerDismiss,
-            confirmButton = {
-                TextButton(onClick = {
-                    val date = Instant.ofEpochMilli(dueDateMillis ?: System.currentTimeMillis())
-                        .atZone(ZoneId.systemDefault()).toLocalDate()
-                    val combinedDateTime = LocalDateTime.of(
-                        date, LocalTime.of(timePickerState.hour, timePickerState.minute)
-                    )
-                    onTimeSelected(
-                        combinedDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    )
-                }) { Text("Ok") }
-            },
-            dismissButton = {
-                TextButton(onClick = onTimePickerDismiss) { Text("Cancel") }
-            },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TimePicker(state = timePickerState)
-                }
+        AlertDialog(onDismissRequest = onTimePickerDismiss, confirmButton = {
+            TextButton(onClick = {
+                val date = Instant.ofEpochMilli(dueDateMillis ?: System.currentTimeMillis())
+                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                val combinedDateTime = LocalDateTime.of(
+                    date, LocalTime.of(timePickerState.hour, timePickerState.minute)
+                )
+                onTimeSelected(
+                    combinedDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                )
+            }) { Text("Ok") }
+        }, dismissButton = {
+            TextButton(onClick = onTimePickerDismiss) { Text("Cancel") }
+        }, text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                TimePicker(state = timePickerState)
             }
-        )
+        })
     }
 }

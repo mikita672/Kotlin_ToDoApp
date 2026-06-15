@@ -53,56 +53,57 @@ fun TaskListScreen(
     val scope = rememberCoroutineScope()
     val tabs = listOf("To Do", "Today", "Overdue", "Completed")
 
-    val filteredAndSortedTasks = remember(tasks, selectedTabIndex, selectedCategory, sortOrder, searchQuery) {
-        val baseFiltered = when (selectedTabIndex) {
-            0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
-            1 -> {
-                val today = LocalDate.now()
-                tasks.filter { task ->
-                    task.dueDate?.let {
-                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                            .toLocalDate() == today
-                    } == true && task.status != TaskStatus.COMPLETED
+    val filteredAndSortedTasks =
+        remember(tasks, selectedTabIndex, selectedCategory, sortOrder, searchQuery) {
+            val baseFiltered = when (selectedTabIndex) {
+                0 -> tasks.filter { it.status != TaskStatus.COMPLETED }
+                1 -> {
+                    val today = LocalDate.now()
+                    tasks.filter { task ->
+                        task.dueDate?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                                .toLocalDate() == today
+                        } == true && task.status != TaskStatus.COMPLETED
+                    }
+                }
+
+                2 -> {
+                    val today = LocalDate.now()
+                    tasks.filter { task ->
+                        task.dueDate?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                                .isBefore(today)
+                        } == true && task.status != TaskStatus.COMPLETED
+                    }
+                }
+
+                3 -> tasks.filter { it.status == TaskStatus.COMPLETED }
+                else -> tasks
+            }
+
+            val searchFiltered = if (searchQuery.isBlank()) {
+                baseFiltered
+            } else {
+                val query = searchQuery.lowercase()
+                baseFiltered.filter { task ->
+                    task.title.lowercase().contains(query) ||
+                            task.description.lowercase().contains(query)
                 }
             }
 
-            2 -> {
-                val today = LocalDate.now()
-                tasks.filter { task ->
-                    task.dueDate?.let {
-                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                            .isBefore(today)
-                    } == true && task.status != TaskStatus.COMPLETED
-                }
+            val categoryFiltered = if (selectedCategory == null) {
+                searchFiltered
+            } else {
+                searchFiltered.filter { it.category == selectedCategory }
             }
 
-            3 -> tasks.filter { it.status == TaskStatus.COMPLETED }
-            else -> tasks
-        }
-
-        val searchFiltered = if (searchQuery.isBlank()) {
-            baseFiltered
-        } else {
-            val query = searchQuery.lowercase()
-            baseFiltered.filter { task ->
-                task.title.lowercase().contains(query) ||
-                        task.description.lowercase().contains(query)
+            when (sortOrder) {
+                SortOrder.DATE_DESC -> categoryFiltered.sortedByDescending { it.createdAt }
+                SortOrder.DATE_ASC -> categoryFiltered.sortedBy { it.createdAt }
+                SortOrder.PRIORITY -> categoryFiltered.sortedBy { it.priority }
+                SortOrder.CATEGORY -> categoryFiltered.sortedBy { it.category.name }
             }
         }
-
-        val categoryFiltered = if (selectedCategory == null) {
-            searchFiltered
-        } else {
-            searchFiltered.filter { it.category == selectedCategory }
-        }
-
-        when (sortOrder) {
-            SortOrder.DATE_DESC -> categoryFiltered.sortedByDescending { it.createdAt }
-            SortOrder.DATE_ASC -> categoryFiltered.sortedBy { it.createdAt }
-            SortOrder.PRIORITY -> categoryFiltered.sortedBy { it.priority }
-            SortOrder.CATEGORY -> categoryFiltered.sortedBy { it.category.name }
-        }
-    }
 
     fun handleTaskStatusChange(task: Task, isCompleted: Boolean) {
         val newStatus = if (isCompleted) TaskStatus.COMPLETED else TaskStatus.TODO
@@ -218,8 +219,12 @@ fun TaskListScreen(
                             unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             unfocusedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
-                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                            focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                alpha = 0.6f
+                            ),
+                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                alpha = 0.6f
+                            ),
                             focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             unfocusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             cursorColor = MaterialTheme.colorScheme.primary

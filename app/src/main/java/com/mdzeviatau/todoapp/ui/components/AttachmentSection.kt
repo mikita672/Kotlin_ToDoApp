@@ -31,6 +31,7 @@ import com.mdzeviatau.todoapp.ui.screens.getFileName
 import com.mdzeviatau.todoapp.ui.screens.isImage
 import com.mdzeviatau.todoapp.ui.screens.openFile
 import com.mdzeviatau.todoapp.ui.screens.saveUriToInternalStorage
+import com.mdzeviatau.todoapp.ui.screens.deleteFileFromInternalStorage
 import java.io.File
 import java.util.UUID
 import androidx.core.net.toUri
@@ -87,6 +88,7 @@ fun AttachmentSection(
                         val uri = uriString.toUri()
                         AttachmentItem(uri = uri, onDelete = {
                             onAttachmentsChange(attachments.filter { it != uriString })
+                            deleteFileFromInternalStorage(context, uri)
                         }, onClick = {
                             if (isImage(context, uri)) {
                                 fullScreenImageUri = uriString

@@ -1,5 +1,5 @@
 package com.mdzeviatau.todoapp.data.models.task
 
-enum class TaskPriority{
+enum class TaskPriority {
     LOW, MEDIUM, HIGH
 }

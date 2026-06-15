@@ -10,15 +10,15 @@ data class Task(
     val title: String,
     val description: String,
     val createdAt: String,
-    val dueDate: Long? =null,
+    val dueDate: Long? = null,
     val status: TaskStatus = TaskStatus.TODO,
     val priority: TaskPriority = TaskPriority.LOW,
     val category: TaskCategory = TaskCategory.OTHER,
-    val reminderTime: Long?=null,
+    val reminderTime: Long? = null,
     val isRepeated: Boolean = false,
     val repeatInterval: RepeatInterval = RepeatInterval.NONE,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val locationName : String? = null,
+    val locationName: String? = null,
     val attachments: List<String> = emptyList()
 )

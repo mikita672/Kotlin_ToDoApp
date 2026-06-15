@@ -1,5 +1,6 @@
 package com.mdzeviatau.todoapp
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -21,9 +22,19 @@ import com.mdzeviatau.todoapp.ui.theme.ToDoAppTheme
 import com.mdzeviatau.todoapp.ui.viewmodel.SettingsViewModel
 import com.mdzeviatau.todoapp.ui.viewmodel.SettingsViewModelFactory
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
 class MainActivity : ComponentActivity() {
+    private var intentData by mutableStateOf<IntentData?>(null)
+
+    data class IntentData(val taskId: String?, val shortcutAction: String?)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        updateIntentData(intent)
+
         setContent {
             val app = application as TodoApplication
             val settingsViewModel: SettingsViewModel = viewModel(
@@ -35,17 +46,30 @@ class MainActivity : ComponentActivity() {
                 RequestNotificationPermission()
                 RequestLocationPermissions()
                 val navController = rememberNavController()
-                AppNavHost(navController = navController)
 
-                LaunchedEffect(Unit) {
-                    if (intent?.getStringExtra("shortcut_action") == "add_task") {
-                        navController.navigate(
-                            com.mdzeviatau.todoapp.ui.navigation.TaskDetailDestination()
-                        )
-                        intent.removeExtra("shortcut_action")
+                AppNavHost(
+                    navController = navController,
+                    initialTaskId = intentData?.taskId,
+                    initialShortcutAction = intentData?.shortcutAction,
+                    onIntentHandled = {
+                        intentData = null
                     }
-                }
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        updateIntentData(intent)
+    }
+
+    private fun updateIntentData(intent: Intent?) {
+        val taskId = intent?.getStringExtra("TASK_ID")
+        val shortcutAction = intent?.getStringExtra("shortcut_action")
+        if (taskId != null || shortcutAction != null) {
+            intentData = IntentData(taskId, shortcutAction)
         }
     }
 }

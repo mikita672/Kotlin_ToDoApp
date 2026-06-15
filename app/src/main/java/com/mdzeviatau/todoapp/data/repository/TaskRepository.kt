@@ -12,30 +12,31 @@ class TaskRepository(private val taskDao: TaskDao) {
     fun getTasksForToday(): Flow<List<Task>> {
         val today = LocalDate.now()
         val startOfDay = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val endOfDay = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+        val endOfDay =
+            today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
 
         return taskDao.getTasksForToday(startOfDay, endOfDay)
     }
 
-    fun getOverdueTasks(): Flow<List<Task>>{
+    fun getOverdueTasks(): Flow<List<Task>> {
         val currentTime = System.currentTimeMillis()
 
         return taskDao.getOverdueTasks(currentTime)
     }
 
-    suspend fun getTaskById(id: String): Task?{
+    suspend fun getTaskById(id: String): Task? {
         return taskDao.getTaskById(id)
     }
 
-    suspend fun insertTask(task: Task){
+    suspend fun insertTask(task: Task) {
         taskDao.insertTask(task)
     }
 
-    suspend fun updateTask(task: Task){
+    suspend fun updateTask(task: Task) {
         taskDao.updateTask(task)
     }
 
-    suspend fun deleteTask(task: Task){
+    suspend fun deleteTask(task: Task) {
         taskDao.deleteTask(task)
     }
 }

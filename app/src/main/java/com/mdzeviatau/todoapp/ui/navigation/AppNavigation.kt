@@ -1,5 +1,6 @@
 package com.mdzeviatau.todoapp.ui.navigation
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -14,50 +15,65 @@ import com.mdzeviatau.todoapp.ui.screens.TaskListScreen
 import com.mdzeviatau.todoapp.ui.viewmodel.*
 
 @Composable
-fun AppNavHost(navController: NavHostController) {
-     NavHost(
-         navController = navController,
-         startDestination = TaskListDestination
-     ) {
-         composable<TaskListDestination> {
-                  val context = LocalContext.current
-                  val viewModel: TaskViewModel = viewModel(
-                      factory = TaskViewModelFactory((context.applicationContext as TodoApplication).repository)
-                  )
+fun AppNavHost(
+    navController: NavHostController,
+    initialTaskId: String? = null,
+    initialShortcutAction: String? = null,
+    onIntentHandled: () -> Unit = {}
+) {
+    LaunchedEffect(initialTaskId, initialShortcutAction) {
+        if (initialTaskId != null) {
+            navController.navigate(TaskDetailDestination(initialTaskId))
+            onIntentHandled()
+        } else if (initialShortcutAction == "add_task") {
+            navController.navigate(TaskDetailDestination())
+            onIntentHandled()
+        }
+    }
 
-                  TaskListScreen(
-                              viewModel = viewModel,
-                      onAddTaskClick = { navController.navigate(TaskDetailDestination()) },
-                      onTaskClick = { taskId -> navController.navigate(TaskDetailDestination(taskId)) },
-                      onSettingsClick = { navController.navigate(SettingsDestination) }
-                  )
-              }
+    NavHost(
+        navController = navController,
+        startDestination = TaskListDestination
+    ) {
+        composable<TaskListDestination> {
+            val context = LocalContext.current
+            val viewModel: TaskViewModel = viewModel(
+                factory = TaskViewModelFactory((context.applicationContext as TodoApplication).repository)
+            )
 
-         composable<TaskDetailDestination> { backStackEntry ->
-              val route: TaskDetailDestination = backStackEntry.toRoute()
-              val context = LocalContext.current
-              val viewModel: TaskViewModel = viewModel(
-                  factory = TaskViewModelFactory((context.applicationContext as TodoApplication).repository)
-              )
+            TaskListScreen(
+                viewModel = viewModel,
+                onAddTaskClick = { navController.navigate(TaskDetailDestination()) },
+                onTaskClick = { taskId -> navController.navigate(TaskDetailDestination(taskId)) },
+                onSettingsClick = { navController.navigate(SettingsDestination) }
+            )
+        }
 
-              TaskDetailScreen(
-                  taskId = route.taskId,
-                  viewModel = viewModel,
-                  onNavigateBack = { navController.popBackStack() }
-              )
-          }
+        composable<TaskDetailDestination> { backStackEntry ->
+            val route: TaskDetailDestination = backStackEntry.toRoute()
+            val context = LocalContext.current
+            val viewModel: TaskViewModel = viewModel(
+                factory = TaskViewModelFactory((context.applicationContext as TodoApplication).repository)
+            )
 
-         composable<SettingsDestination> {
-             val context = LocalContext.current
-             val app = context.applicationContext as TodoApplication
-             val settingsViewModel: SettingsViewModel = viewModel(
-                 factory = SettingsViewModelFactory(app.userPreferencesRepository)
-             )
+            TaskDetailScreen(
+                taskId = route.taskId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
-             SettingsScreen(
-                 viewModel = settingsViewModel,
-                 onNavigateBack = { navController.popBackStack() }
-             )
-         }
-     }
- }
+        composable<SettingsDestination> {
+            val context = LocalContext.current
+            val app = context.applicationContext as TodoApplication
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModelFactory(app.userPreferencesRepository)
+            )
+
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+    }
+}

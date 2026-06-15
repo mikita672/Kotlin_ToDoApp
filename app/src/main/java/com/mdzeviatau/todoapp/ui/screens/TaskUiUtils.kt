@@ -138,3 +138,16 @@ fun saveUriToInternalStorage(context: Context, uri: Uri): Uri? {
         null
     }
 }
+
+fun deleteFileFromInternalStorage(context: Context, uri: Uri) {
+    try {
+        if (uri.scheme == "file") {
+            val file = File(uri.path!!)
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("TaskUiUtils", "Error deleting file: $uri", e)
+    }
+}

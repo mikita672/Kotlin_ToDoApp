@@ -16,24 +16,19 @@ import com.mdzeviatau.todoapp.ui.viewmodel.SettingsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel,
-    onNavigateBack: () -> Unit
+    viewModel: SettingsViewModel, onNavigateBack: () -> Unit
 ) {
     val appTheme by viewModel.themeState.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabledState.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Return")
-                    }
+            TopAppBar(title = { Text("Settings") }, navigationIcon = {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Return")
                 }
-            )
-        }
-    ) { innerPadding ->
+            })
+        }) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -53,8 +48,7 @@ fun SettingsScreen(
                     ) {
                         RadioButton(
                             selected = appTheme == theme,
-                            onClick = { viewModel.updateTheme(theme) }
-                        )
+                            onClick = { viewModel.updateTheme(theme) })
                         Text(
                             text = theme.name.lowercase().replaceFirstChar { it.uppercase() },
                             modifier = Modifier.padding(start = 8.dp)
@@ -80,8 +74,7 @@ fun SettingsScreen(
                 }
                 Switch(
                     checked = notificationsEnabled,
-                    onCheckedChange = { viewModel.updateNotificationsEnabled(it) }
-                )
+                    onCheckedChange = { viewModel.updateNotificationsEnabled(it) })
             }
         }
     }
